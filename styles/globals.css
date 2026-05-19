@@ -40,7 +40,9 @@ body {
   margin: 0;
   background:
     radial-gradient(circle at 20% 0%, rgba(200,168,75,0.10), transparent 32rem),
-    linear-gradient(180deg, var(--ink2) 0%, var(--ink) 100%);
+    linear-gradient(180deg, rgba(4,9,15,0.56) 0%, rgba(4,9,15,0.76) 48%, rgba(4,9,15,0.92) 100%),
+    url("/blue-wave.png") center top / cover no-repeat fixed,
+    var(--ink);
   color: var(--cream);
   font-family: var(--font-body);
   text-rendering: geometricPrecision;
