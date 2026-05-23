@@ -157,6 +157,7 @@ function Atmosphere({ particles }: { particles: Particle[] }) {
   return (
     <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_60%_at_50%_-10%,rgba(18,36,64,0.9),transparent_65%),radial-gradient(ellipse_80%_50%_at_10%_40%,rgba(27,153,112,0.07),transparent_55%),radial-gradient(ellipse_70%_50%_at_92%_30%,rgba(200,168,75,0.06),transparent_60%),radial-gradient(ellipse_100%_80%_at_50%_100%,rgba(4,9,15,1),rgba(4,9,15,0)_60%),linear-gradient(180deg,#04090F,#070F1A_25%,#0B1826_50%,#070F1A_75%,#04090F)]" />
+      <WaterWaves />
       <div className="absolute left-[8%] top-[24%] h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(61,184,144,0.18),transparent_68%)] [animation:glow-pulse_8s_ease-in-out_infinite]" />
       <div className="absolute right-[14%] top-[36%] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(200,168,75,0.13),transparent_70%)] [animation:glow-pulse_11s_ease-in-out_infinite]" />
       <div className="absolute bottom-[15%] left-[42%] h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(61,184,144,0.12),transparent_70%)] [animation:glow-pulse_6s_ease-in-out_infinite]" />
@@ -203,6 +204,42 @@ function Atmosphere({ particles }: { particles: Particle[] }) {
         </text>
       </svg>
     </div>
+  );
+}
+
+function WaterWaves() {
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-[42vh] bg-[linear-gradient(180deg,rgba(75,86,255,0.34),rgba(19,36,91,0.18)_38%,transparent_100%)]" />
+      <div className="absolute inset-x-0 top-[5vh] h-[38vh] opacity-70 blur-[1px] [animation:wave-swell_12s_ease-in-out_infinite]">
+        <WaveBand className="text-[#1b2d86] opacity-55 [animation:wave-drift_16s_ease-in-out_infinite_alternate]" yOffset={0} />
+        <WaveBand className="top-[4rem] text-[#102660] opacity-70 [animation:wave-drift_22s_ease-in-out_infinite_alternate-reverse]" yOffset={18} />
+        <WaveBand className="top-[8.5rem] text-[#061a3f] opacity-90 [animation:wave-drift_27s_ease-in-out_infinite_alternate]" yOffset={36} />
+      </div>
+      <div className="absolute inset-x-[-18%] top-[18vh] h-[70vh] opacity-20 mix-blend-screen blur-xl [background-image:linear-gradient(112deg,transparent_0%,transparent_38%,rgba(96,118,255,0.22)_46%,transparent_56%,transparent_100%),linear-gradient(68deg,transparent_0%,transparent_36%,rgba(61,184,144,0.14)_44%,transparent_54%,transparent_100%)] [background-size:42rem_100%,52rem_100%] [mask-image:linear-gradient(180deg,transparent,black_18%,black_72%,transparent)] [animation:water-shimmer_22s_linear_infinite]" />
+      <div className="absolute inset-x-0 top-[28vh] h-[55vh] bg-[radial-gradient(ellipse_70%_40%_at_50%_0%,rgba(77,88,255,0.18),transparent_68%)] opacity-80" />
+    </div>
+  );
+}
+
+function WaveBand({ className, yOffset }: { className: string; yOffset: number }) {
+  return (
+    <svg
+      className={`absolute left-[-10%] h-52 w-[120%] ${className}`}
+      viewBox="0 0 1600 260"
+      preserveAspectRatio="none"
+      style={{ top: yOffset }}
+    >
+      <path
+        fill="currentColor"
+        d="M0 98C76 54 140 72 212 92C292 114 362 127 438 82C518 36 579 55 650 89C727 126 793 121 870 79C952 34 1017 54 1087 90C1166 130 1235 126 1313 88C1396 47 1471 55 1600 92V260H0Z"
+      />
+      <path
+        fill="currentColor"
+        opacity="0.42"
+        d="M0 58C90 20 156 42 238 63C325 85 399 91 468 49C545 2 624 27 701 62C784 99 850 92 923 55C1005 13 1075 29 1152 66C1234 105 1312 104 1391 69C1468 35 1531 38 1600 57V260H0Z"
+      />
+    </svg>
   );
 }
 

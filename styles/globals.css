@@ -233,6 +233,33 @@ select {
   }
 }
 
+@keyframes wave-drift {
+  0% {
+    transform: translate3d(-8%, 0, 0);
+  }
+  100% {
+    transform: translate3d(8%, 0, 0);
+  }
+}
+
+@keyframes wave-swell {
+  0%, 100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(10px) scaleY(1.08);
+  }
+}
+
+@keyframes water-shimmer {
+  0% {
+    background-position: 0% 0%, 0% 0%;
+  }
+  100% {
+    background-position: 160% 80%, -140% 70%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
