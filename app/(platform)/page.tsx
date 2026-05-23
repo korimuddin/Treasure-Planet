@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 
 type Particle = {
   id: number;
@@ -25,47 +25,36 @@ const trustStats = [
 
 const depthMarkers = ["0m", "200m", "800m", "2000m", "4000m"];
 const coordinateMarkers = ["38°N", "24°W", "16°S", "04°E"];
+const particles: Particle[] = Array.from({ length: 44 }, (_, index) => {
+  const teal = index % 4 === 0;
+
+  return {
+    id: index,
+    left: (index * 23 + 7) % 100,
+    top: (index * 31 + 11) % 100,
+    delay: (index * 0.31) % 12,
+    duration: 16 + (index % 9),
+    size: index % 7 === 0 ? 5 : 1.5 + (index % 4),
+    opacity: 0.08 + ((index % 6) * 0.026),
+    color: teal ? "159,197,255" : "255,255,255",
+    drift: (index % 2 === 0 ? 1 : -1) * (12 + (index % 8) * 4),
+  };
+});
 
 export default function HomePage() {
-  const [particles, setParticles] = useState<Particle[]>([]);
-
-  useEffect(() => {
-    setParticles(
-      Array.from({ length: 20 }, (_, index) => {
-        const teal = index % 3 === 0;
-        return {
-          id: index,
-          left: (index * 37) % 100,
-          top: (index * 29) % 100,
-          delay: (index * 0.47) % 8,
-          duration: 12 + (index % 7),
-          size: 2 + (index % 5),
-          opacity: 0.12 + ((index % 5) * 0.045),
-          color: teal ? "159,197,255" : "255,255,255",
-          drift: (index % 2 === 0 ? 1 : -1) * (10 + (index % 6) * 3),
-        };
-      }),
-    );
-  }, []);
-
   return (
     <main className="relative isolate overflow-hidden bg-ink">
       <Atmosphere particles={particles} />
 
       <section className="relative z-10 flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-20 text-center sm:px-6 lg:px-8">
-        <div
-          aria-hidden="true"
-          className="absolute left-0 right-0 top-20 h-px bg-[linear-gradient(90deg,transparent,rgba(200,168,75,0.54),transparent)]"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute bottom-0 left-0 right-0 h-px bg-[linear-gradient(90deg,transparent,rgba(200,168,75,0.38),transparent)]"
-        />
+        <div aria-hidden="true" className="absolute left-0 right-0 top-20 h-px bg-[linear-gradient(90deg,transparent,rgba(234,243,255,0.34),transparent)]" />
+        <div aria-hidden="true" className="absolute bottom-0 left-0 right-0 h-px bg-[linear-gradient(90deg,transparent,rgba(117,170,255,0.28),transparent)]" />
 
         <MarkerRail values={depthMarkers} side="left" />
         <MarkerRail values={coordinateMarkers} side="right" />
 
         <div className="mx-auto max-w-4xl">
+          <div className="absolute left-1/2 top-1/2 -z-10 h-[34rem] w-[50rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(2,7,18,0.58),rgba(2,7,18,0.36)_42%,transparent_72%)] blur-2xl" />
           <div
             className="mx-auto flex max-w-md items-center gap-4 opacity-0 [animation:fade-up_700ms_ease_forwards]"
             style={{ animationDelay: "0.2s" }}
@@ -160,13 +149,14 @@ export default function HomePage() {
 function Atmosphere({ particles }: { particles: Particle[] }) {
   return (
     <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_60%_at_50%_-10%,rgba(43,112,255,0.58),transparent_65%),radial-gradient(ellipse_80%_50%_at_10%_40%,rgba(127,176,255,0.14),transparent_55%),radial-gradient(ellipse_70%_50%_at_92%_30%,rgba(14,95,255,0.18),transparent_60%),radial-gradient(ellipse_100%_80%_at_50%_100%,rgba(2,7,18,1),rgba(2,7,18,0)_60%),linear-gradient(180deg,#020712,#071D44_42%,#0B3D91_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_110%_52%_at_50%_-12%,rgba(109,140,255,0.58),transparent_62%),radial-gradient(ellipse_72%_38%_at_12%_26%,rgba(127,176,255,0.16),transparent_58%),radial-gradient(ellipse_64%_42%_at_86%_34%,rgba(14,95,255,0.22),transparent_58%),radial-gradient(ellipse_90%_58%_at_50%_78%,rgba(2,7,18,0.10),rgba(2,7,18,0.88)_72%),linear-gradient(180deg,#050b2b_0%,#08245d_28%,#061633_62%,#020712_100%)]" />
       <WaterWaves />
       <LightShafts />
+      <OceanFog />
       <DepthSetPiece />
-      <div className="absolute left-[8%] top-[24%] h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(61,184,144,0.18),transparent_68%)] [animation:glow-pulse_8s_ease-in-out_infinite]" />
-      <div className="absolute right-[14%] top-[36%] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(200,168,75,0.13),transparent_70%)] [animation:glow-pulse_11s_ease-in-out_infinite]" />
-      <div className="absolute bottom-[15%] left-[42%] h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(61,184,144,0.12),transparent_70%)] [animation:glow-pulse_6s_ease-in-out_infinite]" />
+      <div className="absolute left-[6%] top-[28%] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(117,170,255,0.18),transparent_70%)] blur-sm [animation:glow-pulse_9s_ease-in-out_infinite]" />
+      <div className="absolute right-[10%] top-[40%] h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(14,95,255,0.16),transparent_72%)] blur-md [animation:glow-pulse_12s_ease-in-out_infinite]" />
+      <div className="absolute bottom-[12%] left-[44%] h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(159,197,255,0.11),transparent_72%)] blur-sm [animation:glow-pulse_7s_ease-in-out_infinite]" />
       {particles.map((particle) => (
         <span
           key={particle.id}
@@ -181,14 +171,14 @@ function Atmosphere({ particles }: { particles: Particle[] }) {
             animation: `bubble-rise ${particle.duration}s ease-in-out infinite`,
             animationDelay: `${particle.delay}s`,
             "--bubble-drift": `${particle.drift}px`,
-          } as React.CSSProperties & {
+          } as CSSProperties & {
             "--bubble-drift": string;
           }}
         />
       ))}
-      <div className="absolute left-0 right-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(226,197,112,0.5),transparent)] [animation:scan_5s_linear_infinite]" />
+      <div className="absolute left-0 right-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(234,243,255,0.46),transparent)] [animation:scan_5s_linear_infinite]" />
       <svg
-        className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 text-gold opacity-[0.035] [animation:compass-rotate_120s_linear_infinite]"
+        className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 text-white opacity-[0.026] [animation:compass-rotate_120s_linear_infinite]"
         viewBox="0 0 200 200"
       >
         <circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" strokeWidth="1" />
@@ -214,26 +204,26 @@ function Atmosphere({ particles }: { particles: Particle[] }) {
 function WaterWaves() {
   return (
     <div className="absolute inset-0 overflow-hidden">
-      <div className="absolute inset-x-0 top-0 h-[42vh] bg-[linear-gradient(180deg,rgba(75,86,255,0.44),rgba(19,36,91,0.20)_38%,transparent_100%)]" />
-      <div className="absolute inset-x-0 top-[5vh] h-[38vh] opacity-70 blur-[1px] [animation:wave-swell_12s_ease-in-out_infinite]">
-        <WaveBand className="text-[#1b2d86] opacity-55 [animation:wave-drift_16s_ease-in-out_infinite_alternate]" yOffset={0} />
-        <WaveBand className="top-[4rem] text-[#102660] opacity-70 [animation:wave-drift_22s_ease-in-out_infinite_alternate-reverse]" yOffset={18} />
-        <WaveBand className="top-[8.5rem] text-[#061a3f] opacity-90 [animation:wave-drift_27s_ease-in-out_infinite_alternate]" yOffset={36} />
+      <div className="absolute inset-x-0 top-0 h-[46vh] bg-[linear-gradient(180deg,rgba(126,149,255,0.34),rgba(43,112,255,0.18)_34%,transparent_100%)]" />
+      <div className="absolute inset-x-[-6%] top-[4vh] h-[35vh] opacity-80 blur-[0.7px] [animation:wave-swell_14s_ease-in-out_infinite]">
+        <WaveBand className="text-[#294bb4] opacity-[0.36] [animation:wave-drift_18s_ease-in-out_infinite_alternate]" yOffset={0} />
+        <WaveBand className="top-[4rem] text-[#12367e] opacity-[0.46] [animation:wave-drift_24s_ease-in-out_infinite_alternate-reverse]" yOffset={24} />
+        <WaveBand className="top-[8.5rem] text-[#061b49] opacity-[0.74] [animation:wave-drift_31s_ease-in-out_infinite_alternate]" yOffset={54} />
       </div>
-      <div className="absolute inset-x-[-18%] top-[12vh] h-[72vh] opacity-28 mix-blend-screen blur-xl [background-image:linear-gradient(112deg,transparent_0%,transparent_38%,rgba(96,118,255,0.26)_46%,transparent_56%,transparent_100%),linear-gradient(68deg,transparent_0%,transparent_36%,rgba(159,197,255,0.18)_44%,transparent_54%,transparent_100%)] [background-size:42rem_100%,52rem_100%] [mask-image:linear-gradient(180deg,transparent,black_14%,black_72%,transparent)] [animation:water-shimmer_22s_linear_infinite]" />
-      <div className="absolute inset-x-[-10%] top-[10vh] h-[32vh] opacity-30 mix-blend-screen [background-image:radial-gradient(ellipse_at_center,rgba(255,255,255,0.22)_0_1px,transparent_1px_18px)] [background-size:5.5rem_2.4rem] [transform:perspective(520px)_rotateX(58deg)] [animation:caustic-drift_18s_linear_infinite]" />
-      <div className="absolute inset-x-0 top-[28vh] h-[55vh] bg-[radial-gradient(ellipse_70%_40%_at_50%_0%,rgba(77,88,255,0.18),transparent_68%)] opacity-80" />
+      <div className="absolute inset-x-[-22%] top-[10vh] h-[76vh] opacity-[0.28] mix-blend-screen blur-xl [background-image:linear-gradient(112deg,transparent_0%,transparent_38%,rgba(151,180,255,0.26)_46%,transparent_56%,transparent_100%),linear-gradient(68deg,transparent_0%,transparent_36%,rgba(159,197,255,0.16)_44%,transparent_54%,transparent_100%)] [background-size:48rem_100%,62rem_100%] [mask-image:linear-gradient(180deg,transparent,black_12%,black_68%,transparent)] [animation:water-shimmer_24s_linear_infinite]" />
+      <div className="absolute inset-x-[-10%] top-[9vh] h-[32vh] opacity-[0.24] mix-blend-screen [background-image:radial-gradient(ellipse_at_center,rgba(255,255,255,0.26)_0_1px,transparent_1px_20px)] [background-size:6.5rem_2.7rem] [transform:perspective(560px)_rotateX(60deg)] [animation:caustic-drift_20s_linear_infinite]" />
+      <div className="absolute inset-x-0 top-[24vh] h-[62vh] bg-[radial-gradient(ellipse_70%_40%_at_50%_0%,rgba(117,170,255,0.16),transparent_68%)] opacity-80" />
     </div>
   );
 }
 
 function LightShafts() {
   return (
-    <div className="absolute inset-0 overflow-hidden opacity-80">
-      {[12, 28, 47, 68, 86].map((left, index) => (
+    <div className="absolute inset-0 overflow-hidden opacity-75">
+      {[10, 25, 43, 61, 79, 91].map((left, index) => (
         <span
           key={left}
-          className="absolute top-[-12vh] h-[92vh] w-28 origin-top -skew-x-12 bg-[linear-gradient(180deg,rgba(234,243,255,0.16),rgba(117,170,255,0.05)_45%,transparent)] blur-md [mask-image:linear-gradient(180deg,black,transparent_88%)] [animation:shaft-sway_11s_ease-in-out_infinite_alternate]"
+          className="absolute top-[-12vh] h-[96vh] w-24 origin-top -skew-x-12 bg-[linear-gradient(180deg,rgba(234,243,255,0.15),rgba(117,170,255,0.045)_44%,transparent)] blur-md [mask-image:linear-gradient(180deg,black,transparent_86%)] [animation:shaft-sway_13s_ease-in-out_infinite_alternate]"
           style={{
             left: `${left}%`,
             animationDelay: `${index * -1.8}s`,
@@ -245,25 +235,39 @@ function LightShafts() {
   );
 }
 
+function OceanFog() {
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-x-[-20%] top-[34%] h-40 bg-[linear-gradient(90deg,transparent,rgba(159,197,255,0.08),transparent)] blur-3xl [animation:fog-drift_26s_ease-in-out_infinite_alternate]" />
+      <div className="absolute inset-x-[-20%] top-[58%] h-52 bg-[linear-gradient(90deg,transparent,rgba(14,95,255,0.10),transparent)] blur-3xl [animation:fog-drift_34s_ease-in-out_infinite_alternate-reverse]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(2,7,18,0.16)_42%,rgba(2,7,18,0.54)_100%)]" />
+    </div>
+  );
+}
+
 function DepthSetPiece() {
   return (
     <div className="absolute inset-x-0 bottom-0 h-[36vh] overflow-hidden">
-      <svg className="absolute bottom-[-1px] left-0 h-full w-full text-[#010816] opacity-90" viewBox="0 0 1600 360" preserveAspectRatio="none">
+      <svg className="absolute bottom-[-1px] left-0 h-full w-full text-[#010816] opacity-95" viewBox="0 0 1600 360" preserveAspectRatio="none">
         <path
           fill="currentColor"
-          d="M0 294C96 260 168 248 260 268C358 289 425 318 535 282C629 251 706 236 808 270C919 306 1012 324 1131 287C1259 247 1377 246 1600 288V360H0Z"
+          d="M0 300C132 250 238 255 341 282C438 307 521 320 642 283C739 254 842 250 946 286C1060 326 1160 326 1282 287C1400 249 1500 259 1600 294V360H0Z"
         />
         <path
           fill="currentColor"
-          opacity="0.74"
-          d="M0 324C168 294 290 308 410 319C535 330 641 313 748 298C912 276 1043 303 1198 322C1320 337 1438 325 1600 306V360H0Z"
+          opacity="0.62"
+          d="M0 330C170 294 296 311 416 322C552 334 664 312 790 299C939 283 1056 307 1198 324C1327 340 1450 326 1600 309V360H0Z"
         />
       </svg>
-      <div className="absolute bottom-[6vh] left-[13%] h-20 w-44 rotate-[-8deg] border border-[#5e86c8]/20 bg-[linear-gradient(135deg,rgba(127,176,255,0.08),rgba(2,7,18,0.16))] opacity-30 shadow-[0_0_55px_rgba(117,170,255,0.10)]" />
-      <div className="absolute bottom-[10vh] left-[18%] h-16 w-px rotate-[12deg] bg-[#75aaff]/20 opacity-50" />
-      <div className="absolute bottom-[13vh] left-[19%] h-12 w-12 rounded-full border border-[#75aaff]/15 opacity-40" />
-      <div className="absolute bottom-[9vh] right-[16%] h-2 w-2 rounded-full bg-white shadow-[0_0_22px_8px_rgba(117,170,255,0.28)] [animation:beacon-pulse_3.6s_ease-in-out_infinite]" />
-      <div className="absolute bottom-[8vh] right-[14%] h-10 w-24 border border-white/10 bg-[rgba(117,170,255,0.08)] opacity-35" />
+      <svg className="absolute bottom-[7vh] left-[9%] h-36 w-72 rotate-[-7deg] text-[#75aaff] opacity-[0.16]" viewBox="0 0 360 160" fill="none">
+        <path d="M38 112C96 89 170 86 262 100L321 109C278 137 210 151 125 145C84 142 54 132 38 112Z" fill="currentColor" opacity="0.22" />
+        <path d="M82 95L96 42M143 89L156 28M212 93L230 47" stroke="currentColor" strokeWidth="2" opacity="0.45" />
+        <circle cx="92" cy="42" r="19" stroke="currentColor" strokeWidth="2" opacity="0.32" />
+        <path d="M60 112C128 101 220 103 310 119" stroke="currentColor" strokeWidth="2" opacity="0.42" />
+      </svg>
+      <div className="absolute bottom-[9vh] right-[16%] h-2 w-2 rounded-full bg-white shadow-[0_0_28px_10px_rgba(117,170,255,0.34)] [animation:beacon-pulse_4.2s_ease-in-out_infinite]" />
+      <div className="absolute bottom-[7.5vh] right-[13%] h-12 w-28 border border-white/10 bg-[rgba(117,170,255,0.07)] opacity-[0.28]" />
+      <div className="absolute bottom-[12vh] right-[11%] h-20 w-px rotate-[-16deg] bg-white/10" />
     </div>
   );
 }

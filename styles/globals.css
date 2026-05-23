@@ -344,6 +344,15 @@ select {
   }
 }
 
+@keyframes fog-drift {
+  0% {
+    transform: translate3d(-8%, 0, 0) scaleX(0.96);
+  }
+  100% {
+    transform: translate3d(8%, 12px, 0) scaleX(1.08);
+  }
+}
+
 @keyframes caustic-drift {
   0% {
     background-position: 0 0;
