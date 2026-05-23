@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
+import { OnboardingSaleDemo } from "@/components/onboarding/OnboardingSaleDemo";
 
 const flows = {
   Buyer: [
@@ -33,11 +35,41 @@ export default function HowItWorksPage() {
 
   return (
     <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-5xl space-y-8">
-        <header>
-          <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">Process</p>
-          <h1 className="mt-3 font-display text-display-lg uppercase text-cream">How it works</h1>
+      <div className="mx-auto max-w-7xl space-y-10">
+        <header className="royal-glass overflow-hidden p-6 sm:p-8 lg:p-10">
+          <div className="grid gap-8 lg:grid-cols-[1fr_360px] lg:items-end">
+            <div>
+              <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-muted">How it works</p>
+              <h1 className="royal-gradient-text mt-3 font-display text-display-lg uppercase">
+                See a Treasure Planet sale in motion
+              </h1>
+              <p className="mt-4 max-w-3xl text-lg leading-7 text-cream2">
+                New buyers can try the guided sale demo first: filter anonymous listings by tags, platform, completion,
+                and price, then walk through the exact six steps from mutual NDA to closing.
+              </p>
+            </div>
+            <div className="border border-border bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(24,91,220,0.20))] p-5">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Recommended first</p>
+              <p className="mt-3 text-cream2">
+                Use the demo to understand what unlocks when, what the seller sees, and how escrow closes the deal.
+              </p>
+              <Link
+                href="#demo"
+                className="btn-liquid mt-5 inline-flex w-full items-center justify-center px-5 py-3 font-mono text-xs uppercase tracking-[0.16em]"
+              >
+                Open Sale Demo
+              </Link>
+            </div>
+          </div>
         </header>
+
+        <OnboardingSaleDemo />
+
+        <section className="mx-auto max-w-5xl space-y-8 pt-4">
+          <header>
+            <p className="font-mono text-xs uppercase tracking-[0.18em] text-muted">Process</p>
+            <h2 className="royal-gradient-text mt-3 font-display text-display-lg uppercase">Buyer, seller, cofounder paths</h2>
+          </header>
         <nav className="flex gap-6 border-b border-border">
           {(Object.keys(flows) as Tab[]).map((item) => (
             <button
@@ -66,6 +98,7 @@ export default function HowItWorksPage() {
               </div>
             </div>
           ))}
+        </section>
         </section>
       </div>
     </main>
