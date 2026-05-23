@@ -3,26 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --ink: #04090F;
-  --ink2: #070F1A;
-  --ink3: #0B1826;
-  --ink4: #0E2035;
-  --gold: #C8A84B;
-  --gold2: #E2C570;
-  --gold-dim: rgba(200,168,75,0.12);
-  --teal: #1B9970;
-  --teal2: #3DB890;
-  --teal-dim: rgba(27,153,112,0.10);
-  --cream: #EDE4CC;
-  --cream2: #D4C8A8;
-  --muted: #7A6E5A;
-  --muted2: #4A4438;
-  --red: #C8522A;
-  --red-dim: rgba(200,82,42,0.12);
-  --border: rgba(200,168,75,0.14);
-  --border2: rgba(200,168,75,0.28);
-  --font-display: 'Bebas Neue', sans-serif;
-  --font-body: 'Cormorant Garamond', Georgia, serif;
+  --ink: #020712;
+  --ink2: #061633;
+  --ink3: #071D44;
+  --ink4: #0B3D91;
+  --gold: #FFFFFF;
+  --gold2: #75AAFF;
+  --gold-dim: rgba(127,176,255,0.18);
+  --teal: #0E5FFF;
+  --teal2: #9FC5FF;
+  --teal-dim: rgba(43,112,255,0.16);
+  --cream: #EAF3FF;
+  --cream2: #CFE4FF;
+  --muted: #9FC5FF;
+  --muted2: #5E86C8;
+  --red: #FF7C92;
+  --red-dim: rgba(255,124,146,0.16);
+  --border: rgba(230,242,255,0.18);
+  --border2: rgba(230,242,255,0.34);
+  --font-display: var(--font-body), Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: 'DM Mono', monospace;
 }
 
@@ -32,17 +32,21 @@
 
 html {
   min-height: 100%;
-  background: var(--ink);
+  background:
+    radial-gradient(circle at 18% 8%, rgba(43,112,255,0.78), transparent 30rem),
+    radial-gradient(circle at 88% 24%, rgba(10,78,196,0.72), transparent 34rem),
+    linear-gradient(145deg, #020712, #071D44 42%, #0B3D91 100%);
 }
 
 body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at 20% 0%, rgba(200,168,75,0.10), transparent 32rem),
-    linear-gradient(180deg, rgba(4,9,15,0.56) 0%, rgba(4,9,15,0.76) 48%, rgba(4,9,15,0.92) 100%),
+    radial-gradient(circle at 18% 8%, rgba(43,112,255,0.70), transparent 30rem),
+    radial-gradient(circle at 88% 24%, rgba(10,78,196,0.62), transparent 34rem),
+    linear-gradient(180deg, rgba(2,7,18,0.34) 0%, rgba(2,7,18,0.62) 52%, rgba(2,7,18,0.86) 100%),
     url("/blue-wave.png") center top / cover no-repeat fixed,
-    var(--ink);
+    linear-gradient(145deg,#020712,#071D44 42%,#0B3D91 100%);
   color: var(--cream);
   font-family: var(--font-body);
   text-rendering: geometricPrecision;
@@ -77,16 +81,43 @@ select {
   font: inherit;
 }
 
+button,
+.button {
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition:
+    transform 200ms ease,
+    background 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+button:hover,
+.button:hover {
+  transform: translateY(-2px);
+}
+
+input,
+textarea,
+select {
+  border-radius: 0;
+}
+
 @layer components {
   .btn-liquid {
     position: relative;
     isolation: isolate;
     overflow: hidden;
     border: 1px solid var(--border2);
-    background: transparent;
+    background: linear-gradient(150deg,rgba(255,255,255,0.08),rgba(22,85,205,0.18));
     color: var(--cream);
+    font-weight: 850;
+    letter-spacing: 0.12em;
     transition:
       border-color 180ms ease,
+      box-shadow 180ms ease,
       color 180ms ease,
       transform 180ms ease;
   }
@@ -96,16 +127,17 @@ select {
     inset: 0;
     z-index: -1;
     content: "";
-    background: linear-gradient(90deg, var(--gold), var(--gold2));
+    background: linear-gradient(135deg, #ffffff, #7fb0ff);
     transform: scaleX(0);
     transform-origin: left center;
     transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .btn-liquid:hover {
-    border-color: var(--gold2);
-    color: var(--ink);
-    transform: translateY(-1px);
+    border-color: #dceaff;
+    color: #031126;
+    box-shadow: 0 18px 44px rgba(14,95,255,0.28);
+    transform: translateY(-2px);
   }
 
   .btn-liquid:hover::before {
@@ -117,7 +149,7 @@ select {
     display: inline-block;
     overflow: hidden;
     border-radius: 1px;
-    background: linear-gradient(90deg, var(--muted2), var(--gold-dim), var(--muted2));
+    background: linear-gradient(90deg, rgba(159,197,255,0.24), rgba(255,255,255,0.22), rgba(94,134,200,0.18));
     color: transparent;
   }
 
@@ -125,7 +157,7 @@ select {
     position: absolute;
     inset: 0;
     content: "";
-    background: linear-gradient(90deg, transparent, rgba(226,197,112,0.42), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.58), transparent);
     transform: translateX(-100%);
     animation: shimmer 2.2s ease-in-out infinite;
   }
@@ -133,7 +165,7 @@ select {
   .auth-input {
     width: 100%;
     border: 1px solid var(--border);
-    background: rgba(4,9,15,0.8);
+    background: rgba(2,7,18,0.72);
     padding: 0.875rem 1rem;
     color: var(--cream);
     outline: none;
@@ -144,17 +176,52 @@ select {
 
   .auth-input:focus {
     border-color: var(--gold);
-    box-shadow: 0 0 0 1px rgba(200,168,75,0.18);
+    box-shadow: 0 0 0 1px rgba(230,242,255,0.26), 0 16px 40px rgba(14,95,255,0.20);
   }
 
   .auth-input::placeholder {
     color: var(--muted);
+  }
+
+  .royal-glass {
+    border: 1px solid var(--border);
+    background: linear-gradient(150deg, rgba(255,255,255,0.10), rgba(22,85,205,0.20));
+    backdrop-filter: blur(18px);
+    box-shadow: 0 24px 80px rgba(2,7,18,0.28);
+  }
+
+  [class*="border-border"][class*="bg-"],
+  [class*="border-gold-dim"][class*="bg-gold-dim"],
+  [class*="border-teal-dim"][class*="bg-teal-dim"] {
+    background-image: linear-gradient(150deg, rgba(255,255,255,0.10), rgba(22,85,205,0.20));
+    backdrop-filter: blur(18px);
+  }
+
+  [class*="bg-ink2"],
+  [class*="bg-ink-2"] {
+    background-image: linear-gradient(150deg, rgba(255,255,255,0.08), rgba(22,85,205,0.16));
+  }
+
+  table {
+    border-collapse: collapse;
   }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .font-display {
+    font-weight: 900;
+    letter-spacing: -0.055em;
+  }
+
+  .royal-gradient-text {
+    color: transparent;
+    background: linear-gradient(110deg,#ffffff,#75aaff,#0e5fff);
+    -webkit-background-clip: text;
+    background-clip: text;
   }
 }
 

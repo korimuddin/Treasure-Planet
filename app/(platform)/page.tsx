@@ -38,7 +38,7 @@ export default function HomePage() {
           duration: 8 + (index % 6),
           size: 2 + (index % 4),
           opacity: 0.18 + ((index % 5) * 0.06),
-          color: teal ? "61,184,144" : "200,168,75",
+          color: teal ? "159,197,255" : "255,255,255",
         };
       }),
     );
@@ -80,10 +80,10 @@ export default function HomePage() {
             Find Hidden Treasure
           </p>
           <h1
-            className="mt-2 font-display text-[clamp(4rem,16vw,8rem)] uppercase leading-[0.85] text-gold opacity-0 [animation:fade-up_700ms_ease_forwards]"
+            className="royal-gradient-text mt-2 font-display text-[clamp(4rem,16vw,8rem)] uppercase leading-[0.85] opacity-0 [animation:fade-up_700ms_ease_forwards]"
             style={{
               animationDelay: "0.45s",
-              textShadow: "0 0 26px rgba(200,168,75,0.32), 0 0 72px rgba(200,168,75,0.14)",
+              textShadow: "0 0 26px rgba(117,170,255,0.28), 0 0 72px rgba(14,95,255,0.18)",
             }}
           >
             IN THE DEPTHS
@@ -110,7 +110,7 @@ export default function HomePage() {
           <div className="mt-9 opacity-0 [animation:fade-up_700ms_ease_forwards]" style={{ animationDelay: "0.8s" }}>
             <Link
               href="/marketplace"
-              className="btn-liquid inline-flex items-center gap-3 border-gold px-6 py-4 font-mono text-xs uppercase tracking-[0.18em] text-gold"
+              className="btn-liquid inline-flex items-center gap-3 border-border2 px-6 py-4 font-mono text-xs uppercase tracking-[0.18em] text-cream"
             >
               Enter the Depths
               <svg aria-hidden="true" width="14" height="18" viewBox="0 0 14 18" fill="none">
@@ -156,7 +156,7 @@ export default function HomePage() {
 function Atmosphere({ particles }: { particles: Particle[] }) {
   return (
     <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_60%_at_50%_-10%,rgba(18,36,64,0.9),transparent_65%),radial-gradient(ellipse_80%_50%_at_10%_40%,rgba(27,153,112,0.07),transparent_55%),radial-gradient(ellipse_70%_50%_at_92%_30%,rgba(200,168,75,0.06),transparent_60%),radial-gradient(ellipse_100%_80%_at_50%_100%,rgba(4,9,15,1),rgba(4,9,15,0)_60%),linear-gradient(180deg,#04090F,#070F1A_25%,#0B1826_50%,#070F1A_75%,#04090F)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_60%_at_50%_-10%,rgba(43,112,255,0.58),transparent_65%),radial-gradient(ellipse_80%_50%_at_10%_40%,rgba(127,176,255,0.14),transparent_55%),radial-gradient(ellipse_70%_50%_at_92%_30%,rgba(14,95,255,0.18),transparent_60%),radial-gradient(ellipse_100%_80%_at_50%_100%,rgba(2,7,18,1),rgba(2,7,18,0)_60%),linear-gradient(180deg,#020712,#071D44_42%,#0B3D91_100%)]" />
       <WaterWaves />
       <div className="absolute left-[8%] top-[24%] h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(61,184,144,0.18),transparent_68%)] [animation:glow-pulse_8s_ease-in-out_infinite]" />
       <div className="absolute right-[14%] top-[36%] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(200,168,75,0.13),transparent_70%)] [animation:glow-pulse_11s_ease-in-out_infinite]" />

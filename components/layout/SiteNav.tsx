@@ -17,9 +17,9 @@ export function SiteNav() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-40 border-b border-border bg-[rgba(4,9,15,0.72)] backdrop-blur-xl">
+    <header className="fixed left-0 right-0 top-0 z-40 border-b border-border bg-[linear-gradient(150deg,rgba(255,255,255,0.10),rgba(22,85,205,0.20))] shadow-[0_20px_60px_rgba(2,7,18,0.28)] backdrop-blur-[18px]">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8" aria-label="Primary navigation">
-        <Link href="/" className="flex items-center gap-2 font-display text-3xl uppercase tracking-wide text-gold">
+        <Link href="/" className="flex items-center gap-2 font-mono text-[13px] font-black uppercase tracking-[0.24em] text-cream">
           <span aria-hidden="true">⚓</span>
           Treasure Planet
         </Link>
@@ -31,8 +31,8 @@ export function SiteNav() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`font-mono text-[10px] uppercase tracking-[0.18em] transition ${
-                  active ? "text-gold" : "text-muted hover:text-gold"
+                className={`font-mono text-[10px] font-bold uppercase tracking-[0.18em] transition ${
+                  active ? "text-cream" : "text-muted hover:text-cream"
                 }`}
               >
                 {link.label}
@@ -41,7 +41,7 @@ export function SiteNav() {
           })}
           <Link
             href="/login"
-            className="border border-border px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-cream2 transition hover:border-border2 hover:text-gold"
+            className="border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.10),rgba(127,176,255,0.16))] px-4 py-2 font-mono text-[10px] font-extrabold uppercase tracking-[0.18em] text-cream2 transition hover:-translate-y-0.5 hover:border-border2 hover:text-cream"
           >
             Sign In
           </Link>
@@ -52,7 +52,7 @@ export function SiteNav() {
           aria-label={open ? "Close navigation menu" : "Open navigation menu"}
           aria-expanded={open}
           aria-controls="mobile-navigation"
-          className="grid h-10 w-10 place-items-center border border-border text-gold md:hidden"
+          className="grid h-10 w-10 place-items-center border border-border bg-[rgba(255,255,255,0.08)] text-cream md:hidden"
           onClick={() => setOpen((current) => !current)}
         >
           {open ? <X aria-hidden="true" size={18} /> : <Menu aria-hidden="true" size={18} />}
@@ -60,13 +60,13 @@ export function SiteNav() {
       </nav>
 
       {open && (
-        <div id="mobile-navigation" className="border-t border-border bg-[rgba(4,9,15,0.98)] p-4 md:hidden">
+        <div id="mobile-navigation" className="border-t border-border bg-[rgba(2,7,18,0.96)] p-4 backdrop-blur-[18px] md:hidden">
           <div className="flex flex-col gap-2">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="border border-border bg-[rgba(7,15,26,0.78)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-cream2"
+                className="border border-border bg-[linear-gradient(150deg,rgba(255,255,255,0.10),rgba(22,85,205,0.20))] px-4 py-3 font-mono text-xs font-bold uppercase tracking-[0.16em] text-cream2"
                 onClick={() => setOpen(false)}
               >
                 {link.label}

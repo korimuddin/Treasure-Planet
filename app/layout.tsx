@@ -1,17 +1,9 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
+import { DM_Mono, Inter } from "next/font/google";
 import "@/styles/globals.css";
 
-const bebasNeue = Bebas_Neue({
+const inter = Inter({
   subsets: ["latin"],
-  weight: "400",
-  variable: "--font-display",
-  display: "swap",
-});
-
-const cormorantGaramond = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   variable: "--font-body",
   display: "swap",
 });
@@ -80,7 +72,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bebasNeue.variable} ${cormorantGaramond.variable} ${dmMono.variable}`}
+      className={`${inter.variable} ${dmMono.variable}`}
     >
       <body className="min-h-screen bg-ink text-cream antialiased selection:bg-gold-dim selection:text-gold2">
         <a
