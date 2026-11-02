@@ -2,21 +2,31 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { startDive } from "./startDive";
 import "./dive-landing.css";
 
 export function DiveLanding() {
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!rootRef.current) return;
-    return startDive(rootRef.current);
+    const root = rootRef.current;
+    if (!root) return;
+    let stop: (() => void) | undefined;
+    let cancelled = false;
+    // start the entrance straight away; the ocean joins when three.js has loaded
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) root.classList.add("intro");
+    // three.js loads after first paint so it never blocks the page
+    import("./startDive").then(({ startDive }) => {
+      if (!cancelled) stop = startDive(root);
+    });
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
   }, []);
 
   return (
     <div className="tp-dive" ref={rootRef}>
       <canvas id="ocean" aria-hidden="true" />
-      <canvas id="motes" aria-hidden="true" />
       <div id="glare" aria-hidden="true" />
 
       <header className="topbar">
