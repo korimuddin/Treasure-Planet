@@ -325,7 +325,11 @@ export function startDive(root: HTMLElement): () => void {
     actx.textBaseline = "top";
     const waveT = reduce ? 0 : t * 1.6;
     const k = 0.9 * gain;
+    // lighter surface: near the top of the dive, the upper rows and the brightest glyphs lean toward
+    // pale periwinkle and aqua, and the crests toward near-white; it fades out over the first ~30 m
+    const surfaceK = 1 - THREE.MathUtils.smoothstep(depth, 0, 30);
     for (let y = 0; y < rows; y++) {
+      const topK = Math.pow(1 - y / rows, 1.6);
       for (let x = 0; x < cols; x++) {
         const i = (y * cols + x) * 4;
         const r = (px[i] / 255 * k - 0.5) * 1.3 + 0.5;
@@ -337,10 +341,24 @@ export function startDive(root: HTMLElement): () => void {
         const ci = Math.round(L * (RAMP.length - 1));
         if (ci === 0) continue;
         const lift = (0.55 + 0.75 * L) * 255;
-        const cr = Math.min(255, Math.max(0, r * (1 - TINT_AMT + TINT_AMT * TINT[0]) * lift)) & 0xf8;
-        const cg = Math.min(255, Math.max(0, g * (1 - TINT_AMT + TINT_AMT * TINT[1]) * lift)) & 0xf8;
-        const cb = Math.min(255, Math.max(0, b * (1 - TINT_AMT + TINT_AMT * TINT[2]) * lift)) & 0xf8;
-        actx.fillStyle = colour(cr, cg, cb);
+        const cr = Math.min(255, Math.max(0, r * (1 - TINT_AMT + TINT_AMT * TINT[0]) * lift));
+        const cg = Math.min(255, Math.max(0, g * (1 - TINT_AMT + TINT_AMT * TINT[1]) * lift));
+        const cb = Math.min(255, Math.max(0, b * (1 - TINT_AMT + TINT_AMT * TINT[2]) * lift));
+        const hi = Math.min(1, Math.max(0, (L - 0.5) / 0.45));
+        const lm = surfaceK * Math.min(0.92, 0.12 + 0.55 * topK + 0.75 * hi * hi * (3 - 2 * hi));
+        const aq = 0.5 + 0.5 * Math.sin(x * 0.045 + y * 0.03 + waveT * 0.15);
+        const pr = 204 - 18 * aq;
+        const pg = 212 + 22 * aq;
+        const pb = 255 - 8 * aq;
+        const w = hi > 0.7 ? (hi - 0.7) / 0.3 : 0;
+        const tr = pr + (246 - pr) * w;
+        const tg = pg + (248 - pg) * w;
+        const tb = pb + (255 - pb) * w;
+        actx.fillStyle = colour(
+          (cr + (tr - cr) * lm) & 0xf8,
+          (cg + (tg - cg) * lm) & 0xf8,
+          (cb + (tb - cb) * lm) & 0xf8,
+        );
         actx.fillText(RAMP[ci], x * CELL, y * CELL);
       }
     }
