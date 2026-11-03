@@ -131,7 +131,8 @@ export function startDive(root: HTMLElement): () => void {
   /* ---------- renderer ---------- */
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
+    // preserveDrawingBuffer lets the ASCII pass read back the frame it has just drawn
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: true });
   } catch {
     clearGlare(); // no WebGL: the canvas keeps its CSS gradient
     return () => {
@@ -259,6 +260,100 @@ export function startDive(root: HTMLElement): () => void {
     snowU.uPx.value = buf.y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
   };
   on("resize", resize);
+
+  /* ---------- ASCII pass ----------
+     The water is drawn off-screen, then resampled into a grid and redrawn as glyphs.
+     Settings follow the "Violet ASCII Wave" brief: standard ramp, brightness 90, contrast 30,
+     #6D4AFF multiplied at 25%, bloom 20, solid background, wave animation. */
+  const asciiCv = q<HTMLCanvasElement>("#ascii");
+  const actx = asciiCv?.getContext("2d") ?? null;
+  const sampleCv = document.createElement("canvas");
+  const sctx = sampleCv.getContext("2d", { willReadFrequently: true });
+  const mobile = window.innerWidth < 700;
+  const CELL = mobile ? 15 : 12;                 // bigger cells on phones: far fewer glyphs to draw
+  const RAMP = " .:-=+*#%@";
+  const TINT = [0x6d / 255, 0x4a / 255, 0xff / 255];
+  const TINT_AMT = 0.25;
+  const ASCII_BG = "#0b0618";
+  const monoFamily = getComputedStyle(document.documentElement).getPropertyValue("--font-mono").trim();
+  const glyphFont = `500 ${CELL}px ${monoFamily ? `${monoFamily}, ` : ""}ui-monospace, Menlo, monospace`;
+  let cols = 0;
+  let rows = 0;
+  let adpr = 1;
+  let gain = 1;
+  let asciiFrame = 0;
+  const sizeAscii = () => {
+    if (!asciiCv) return;
+    adpr = Math.min(window.devicePixelRatio || 1, 2);
+    asciiCv.width = Math.round(window.innerWidth * adpr);
+    asciiCv.height = Math.round(window.innerHeight * adpr);
+    cols = Math.ceil(window.innerWidth / CELL);
+    rows = Math.ceil(window.innerHeight / CELL);
+    sampleCv.width = cols;
+    sampleCv.height = rows;
+  };
+  on("resize", sizeAscii);
+  sizeAscii();
+  const colourCache = new Map<number, string>();
+  const colour = (r: number, g: number, b: number) => {
+    const key = (r << 16) | (g << 8) | b;
+    let v = colourCache.get(key);
+    if (!v) {
+      v = `rgb(${r},${g},${b})`;
+      colourCache.set(key, v);
+    }
+    return v;
+  };
+  const drawAscii = (t: number) => {
+    if (!actx || !sctx || !asciiCv) return;
+    if (mobile && asciiFrame++ % 2 === 1) return; // phones redraw the glyphs every other frame
+    sctx.drawImage(canvas, 0, 0, cols, rows);
+    const px = sctx.getImageData(0, 0, cols, rows).data;
+    // auto-exposure: keep the field alive as the water darkens, letting it thin with depth
+    let sum = 0;
+    for (let i = 0; i < px.length; i += 4) sum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+    const mean = sum / (px.length / 4) / 255;
+    gain += (Math.min(7, Math.max(1, 0.4 / Math.max(mean, 0.01))) - gain) * 0.15;
+
+    actx.setTransform(adpr, 0, 0, adpr, 0, 0);
+    actx.globalCompositeOperation = "source-over";
+    actx.globalAlpha = 1;
+    actx.filter = "none";
+    actx.fillStyle = ASCII_BG;
+    actx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+    actx.font = glyphFont;
+    actx.textBaseline = "top";
+    const waveT = reduce ? 0 : t * 1.6;
+    const k = 0.9 * gain;
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const i = (y * cols + x) * 4;
+        const r = (px[i] / 255 * k - 0.5) * 1.3 + 0.5;
+        const g = (px[i + 1] / 255 * k - 0.5) * 1.3 + 0.5;
+        const b = (px[i + 2] / 255 * k - 0.5) * 1.3 + 0.5;
+        let L = 0.299 * r + 0.587 * g + 0.114 * b;
+        L += 0.11 * Math.sin(x * 0.16 + y * 0.09 - waveT) * Math.sin(y * 0.05 + waveT * 0.37 + 1.3);
+        L = Math.min(1, Math.max(0, L));
+        const ci = Math.round(L * (RAMP.length - 1));
+        if (ci === 0) continue;
+        const lift = (0.55 + 0.75 * L) * 255;
+        const cr = Math.min(255, Math.max(0, r * (1 - TINT_AMT + TINT_AMT * TINT[0]) * lift)) & 0xf8;
+        const cg = Math.min(255, Math.max(0, g * (1 - TINT_AMT + TINT_AMT * TINT[1]) * lift)) & 0xf8;
+        const cb = Math.min(255, Math.max(0, b * (1 - TINT_AMT + TINT_AMT * TINT[2]) * lift)) & 0xf8;
+        actx.fillStyle = colour(cr, cg, cb);
+        actx.fillText(RAMP[ci], x * CELL, y * CELL);
+      }
+    }
+    // bloom 20: a soft blurred copy added on top (skipped where canvas filters are unsupported)
+    actx.setTransform(1, 0, 0, 1, 0, 0);
+    actx.globalCompositeOperation = "lighter";
+    actx.globalAlpha = 0.2;
+    actx.filter = `blur(${Math.round(5 * adpr)}px)`;
+    if (actx.filter !== "none") actx.drawImage(asciiCv, 0, 0);
+    actx.globalCompositeOperation = "source-over";
+    actx.globalAlpha = 1;
+    actx.filter = "none";
+  };
   resize();
 
   let mouse: [number, number] = [0, 0];
@@ -330,6 +425,7 @@ export function startDive(root: HTMLElement): () => void {
     renderer.toneMappingExposure = THREE.MathUtils.lerp(1.3, 1.1, ss(depth, 0, 30));
 
     composer.render(dt);
+    drawAscii(time);
 
     if (first) {
       first = false;
