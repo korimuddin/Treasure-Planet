@@ -1,0 +1,249 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useRef } from "react";
+import "./dive-landing.css";
+
+export function DiveLanding() {
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    let stop: (() => void) | undefined;
+    let cancelled = false;
+    // start the entrance straight away; the ocean joins when three.js has loaded
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) root.classList.add("intro");
+    // three.js loads after first paint so it never blocks the page
+    import("./startDive").then(({ startDive }) => {
+      if (!cancelled) stop = startDive(root);
+    });
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
+  }, []);
+
+  return (
+    <div className="tp-dive" ref={rootRef}>
+      <canvas id="ocean" aria-hidden="true" />
+      <div id="glare" aria-hidden="true" />
+
+      <header className="topbar">
+        <Link className="wordmark" href="/">
+          Treasure Planet
+        </Link>
+        <nav className="nav" aria-label="Account">
+          <Link className="signin" href="/login">
+            Sign in
+          </Link>
+          <Link className="btn btn--sm" href="/register">
+            Request access
+          </Link>
+        </nav>
+      </header>
+
+      <main>
+        <section className="hero wrap" aria-label="Introduction">
+          <div className="hero-inner">
+            <h1>Treasure Planet</h1>
+            <p className="tagline">Find hidden treasure in the depths of abandoned software</p>
+            <p className="lede">
+              Thousands of projects are shipwrecked — fully built, never launched. Buy them, revive them, or find a
+              cofounder to finish what was started.
+            </p>
+            <div className="hero-cta">
+              <Link className="btn" href="/register">
+                Request access
+              </Link>
+              <a className="btn btn--day" href="#how">
+                How it works
+              </a>
+            </div>
+            <div className="cue">Scroll to dive</div>
+          </div>
+        </section>
+
+        <section className="interlude wrap" aria-label="Why it exists">
+          <p id="interlude-line">Every abandoned repo was somebody’s best idea once.</p>
+        </section>
+
+        <section className="gate wrap" id="how" aria-labelledby="gate-title">
+          <div className="inner">
+            <div className="gate-copy">
+              <span className="label">How it works</span>
+              <h2 className="section" id="gate-title">
+                Anonymous until both sides sign
+              </h2>
+              <p className="lead">
+                Buyers see enough to judge a project: the stack, the stage and the asking price. The founder, the code
+                and the strategy stay sealed until a mutual NDA is signed.
+              </p>
+              <ol className="steps">
+                <li>
+                  <b>1</b>
+                  <span>
+                    Browse sealed listings<em>Stack, stage and price</em>
+                  </span>
+                </li>
+                <li>
+                  <b>2</b>
+                  <span>
+                    Both parties sign a mutual NDA<em>Handled in the app</em>
+                  </span>
+                </li>
+                <li>
+                  <b>3</b>
+                  <span>
+                    The listing opens and you agree terms<em>Acquire, co-found or merge</em>
+                  </span>
+                </li>
+              </ol>
+              <div className="fee">
+                <strong>10%</strong>on close, no listing fees
+              </div>
+            </div>
+
+            <article className="listing glass" id="listing" aria-label="Example listing">
+              <div className="l-head">
+                <span className="label">Example listing · TP-0412</span>
+                <span className="chip">
+                  <span className="dot" aria-hidden="true" />
+                  <span id="l-state">Sealed</span>
+                </span>
+              </div>
+              <div className="l-title">
+                <div className="redact" aria-hidden="true" />
+                <span className="real">Tidepool</span>
+              </div>
+              <div className="tags">
+                <span className="chip">Next.js</span>
+                <span className="chip">Supabase</span>
+                <span className="chip">Stripe</span>
+                <span className="chip">B2B SaaS</span>
+              </div>
+              <div className="l-grid">
+                <div>
+                  <small>Stage</small>
+                  <b>Beta</b>
+                </div>
+                <div>
+                  <small>Users</small>
+                  <b>340</b>
+                </div>
+                <div>
+                  <small>Asking</small>
+                  <b>£18K</b>
+                </div>
+              </div>
+              <div className="locked">
+                <div>
+                  <small>Product</small>
+                  <span>Booking and payments for surf schools</span>
+                </div>
+                <div>
+                  <small>Founder</small>
+                  <span>Solo founder, Cornwall</span>
+                </div>
+                <div>
+                  <small>Repository</small>
+                  <span>github.com/tidepool-app/core</span>
+                </div>
+              </div>
+              <div className="l-foot">
+                <span className="fine-inline" id="l-note">
+                  Sample data for illustration
+                </span>
+                <button className="btn btn--sm" id="reveal" type="button">
+                  Sign NDA to reveal
+                </button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section className="deals wrap" id="deals" aria-labelledby="deals-title">
+          <div className="inner">
+            <span className="label">Three ways to bring it up</span>
+            <h2 className="section" id="deals-title">
+              Choose your deal
+            </h2>
+            <div className="deal-list">
+              <article className="deal">
+                <h3>Acquire</h3>
+                <p>Buy the codebase, the domain and the rights outright, and ship it under your own name.</p>
+                <span className="chip">Full IP</span>
+              </article>
+              <article className="deal">
+                <h3>Co-found</h3>
+                <p>Join the original founder for a share of the company and finish what they started.</p>
+                <span className="chip">Equity</span>
+              </article>
+              <article className="deal">
+                <h3>Merge</h3>
+                <p>Fold two half-built projects into one product that neither team could finish alone.</p>
+                <span className="chip">Combine</span>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section className="access wrap" id="access" aria-labelledby="cta-title">
+          <div className="inner">
+            <span className="label">Founding Fleet</span>
+            <h2 className="section" id="cta-title">
+              List with zero fees
+            </h2>
+            <p className="lead">
+              The first sellers on Treasure Planet pay nothing on close. Create an account to list before launch.
+            </p>
+            <Link className="btn" href="/register">
+              Request access
+            </Link>
+          </div>
+        </section>
+      </main>
+
+      <footer className="site-footer wrap">
+        <div className="foot-grid">
+          <div className="foot-brand">
+            <b>Treasure Planet</b>
+            <p>An NDA-gated marketplace for dormant and unfinished software projects.</p>
+          </div>
+          <nav className="foot-col" aria-label="Marketplace">
+            <h5>Marketplace</h5>
+            <ul>
+              <li>
+                <Link href="/marketplace">Browse listings</Link>
+              </li>
+              <li>
+                <Link href="/how-it-works">How it works</Link>
+              </li>
+              <li>
+                <Link href="/how-ndas-work">Mutual NDAs</Link>
+              </li>
+            </ul>
+          </nav>
+          <nav className="foot-col" aria-label="Company">
+            <h5>Company</h5>
+            <ul>
+              <li>
+                <Link href="/about">About</Link>
+              </li>
+              <li>
+                <Link href="/register">Founding Fleet</Link>
+              </li>
+              <li>
+                <Link href="/legal">Terms &amp; privacy</Link>
+              </li>
+            </ul>
+          </nav>
+        </div>
+        <div className="foot-base">
+          <span>© 2026 Treasure Planet</span>
+          <span className="fine">Every deal protected by our mutual NDA</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
