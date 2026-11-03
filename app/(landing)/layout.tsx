@@ -7,6 +7,7 @@ const wixDisplay = Wix_Madefor_Display({
   weight: ["400", "500", "600"],
   variable: "--font-wix-display",
   display: "swap",
+  fallback: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
 });
 
 const wixText = Wix_Madefor_Text({
@@ -14,6 +15,7 @@ const wixText = Wix_Madefor_Text({
   weight: ["400", "500", "600"],
   variable: "--font-wix-text",
   display: "swap",
+  fallback: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
 });
 
 // The landing page draws its own header and footer over the ocean,
