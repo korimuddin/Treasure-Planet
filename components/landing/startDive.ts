@@ -17,9 +17,9 @@ import {
 const MAX_DEPTH = 200; // metres reached at the bottom of the page
 
 /* Morning sunrise. Raise SUN_ELEVATION (e.g. 60) for midday light. */
-const SUN_ELEVATION = 11; // degrees above the horizon
-const SUN_AZIMUTH = 22; // degrees right of straight ahead, so the glow clears the hero text
-const SKY = { turbidity: 3.2, rayleigh: 2.6, mie: 0.004, mieG: 0.86 }; // clear, crisp morning air
+const SUN_ELEVATION = 3; // degrees above the horizon: the sun just clearing it
+const SUN_AZIMUTH = 27; // degrees right of straight ahead, so the glow clears the hero text
+const SKY = { turbidity: 2.6, rayleigh: 3.3, mie: 0.0022, mieG: 0.84 }; // clear, crisp morning air
 
 /** Preetham daylight constants (same model as three's Sky addon), computed once on the CPU. */
 function skyUniforms() {
@@ -85,7 +85,7 @@ export function startDive(root: HTMLElement): () => void {
     const avail = Math.min(hero.clientWidth - 32, 1240);
     title.style.fontSize = "200px";
     const w = title.scrollWidth || 1;
-    title.style.fontSize = `${Math.max(28, Math.min(200, (200 * avail) / w)).toFixed(1)}px`;
+    title.style.fontSize = `${Math.max(28, Math.min(128, (200 * avail) / w)).toFixed(1)}px`;
   };
   fitTitle();
   on("resize", fitTitle);
@@ -140,7 +140,7 @@ export function startDive(root: HTMLElement): () => void {
     };
   }
   renderer.toneMapping = THREE.AgXToneMapping;
-  renderer.toneMappingExposure = 1.55;
+  renderer.toneMappingExposure = 1.3;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   const scene = new THREE.Scene();
@@ -167,8 +167,9 @@ export function startDive(root: HTMLElement): () => void {
     uBetaM: { value: sk.betaM },
     uMieG: { value: SKY.mieG },
     // a low sun is dimmer; open the "aperture" a little so the scene keeps a bright morning feel
-    uSkyGain: { value: 0.32 * Math.pow(527 / Math.max(sk.sunE, 1), 0.65) },
-    uDayLight: { value: 1.45 },
+    uSkyGain: { value: 0.5 },
+    uDayLight: { value: 1.7 },
+    uCamY: { value: -2.4 },
   };
   const oceanMat = new THREE.ShaderMaterial({
     uniforms: oceanU,
@@ -315,6 +316,7 @@ export function startDive(root: HTMLElement): () => void {
     oceanU.uTime.value = time + 12;
     oceanU.uDepth.value = depth / MAX_DEPTH;
     oceanU.uCamDepth.value = camDepth;
+    oceanU.uCamY.value = -camDepth;
 
     camera.position.set(0, -camDepth, 0);
     M.makeBasis(R.clone().negate(), U, F.clone().negate());
@@ -325,7 +327,7 @@ export function startDive(root: HTMLElement): () => void {
     snowU.uLight.value = Math.max(0.08, Math.exp(-depth * 0.0115));
     grain.uniforms.uTime.value = (time * 60) % 1000;
     bloom.strength = THREE.MathUtils.lerp(0.5, 0.35, ss(depth, 0, 40));
-    renderer.toneMappingExposure = THREE.MathUtils.lerp(1.55, 1.15, ss(depth, 0, 30));
+    renderer.toneMappingExposure = THREE.MathUtils.lerp(1.3, 1.1, ss(depth, 0, 30));
 
     composer.render(dt);
 
