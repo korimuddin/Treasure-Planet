@@ -27,6 +27,7 @@ export function DiveLanding() {
   return (
     <div className="tp-dive" ref={rootRef}>
       <canvas id="ocean" aria-hidden="true" />
+      <canvas id="ascii" aria-hidden="true" />
       <div id="glare" aria-hidden="true" />
 
       <header className="topbar">
