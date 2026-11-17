@@ -1,93 +1,110 @@
 import { NextResponse } from "next/server";
-import { checkTransactionForAML } from "@/lib/compliance/aml";
+import { requireUser } from "@/lib/auth/session";
 import { logAction } from "@/lib/compliance/audit";
-import { createDealPaymentIntent, checkSellerOnboarded } from "@/lib/stripe/connect";
-import { createClient } from "@/lib/supabase/server";
+import { formatPence, maxDealPence } from "@/lib/deals/money";
+import { listingDisplayTitle } from "@/lib/listings/access";
+import { checkSellerOnboarded, createDealCheckoutSession, stripeClient } from "@/lib/stripe/connect";
+
+export const runtime = "nodejs";
 
 type RouteContext = { params: { dealId: string } };
 
+/**
+ * Starts (or resumes) Stripe Checkout for an accepted purchase. The deal only
+ * becomes "payment held" when Stripe's webhook confirms the money arrived.
+ */
 export async function POST(_request: Request, { params }: RouteContext) {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth.error) return auth.error;
+  const { user, admin } = auth;
 
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  }
-
-  const { data: deal } = await supabase
+  const { data: deal } = await admin
     .from("deals")
     .select("*")
     .eq("id", params.dealId)
     .eq("buyer_id", user.id)
-    .single();
+    .maybeSingle();
 
   if (!deal) {
     return NextResponse.json({ error: "Deal not found." }, { status: 404 });
   }
 
-  if (deal.status !== "loi_accepted") {
-    return NextResponse.json({ error: "LOI must be accepted before payment." }, { status: 400 });
+  if (deal.deal_type !== "acquire") {
+    return NextResponse.json(
+      { error: "Only outright purchases are paid through the site. Arrange co-found and merge terms directly." },
+      { status: 400 },
+    );
   }
 
-  const { data: seller } = await supabase
+  if (deal.status !== "loi_accepted" && deal.status !== "payment_pending") {
+    return NextResponse.json({ error: "Terms must be accepted before payment." }, { status: 400 });
+  }
+
+  if (deal.agreed_price_gbp > maxDealPence()) {
+    return NextResponse.json(
+      { error: `Purchases above ${formatPence(maxDealPence())} cannot be paid through the site yet.` },
+      { status: 400 },
+    );
+  }
+
+  // Resume an open checkout instead of creating a second one, so a buyer can
+  // never end up paying twice for the same deal.
+  if (deal.status === "payment_pending" && deal.stripe_checkout_session_id) {
+    const existing = await stripeClient().checkout.sessions.retrieve(deal.stripe_checkout_session_id);
+
+    if (existing.status === "open" && existing.url) {
+      return NextResponse.json({ url: existing.url });
+    }
+
+    if (existing.status === "complete") {
+      return NextResponse.json({ error: "Your payment is being confirmed. Check back shortly." }, { status: 409 });
+    }
+  }
+
+  const { data: seller } = await admin
     .from("profiles")
-    .select("stripe_connect_account_id, stripe_connect_charges_enabled")
+    .select("stripe_connect_account_id")
     .eq("id", deal.seller_id)
     .single();
 
-  if (!seller?.stripe_connect_account_id) {
-    return NextResponse.json({ error: "Seller payment setup is incomplete." }, { status: 403 });
+  if (!seller?.stripe_connect_account_id || !(await checkSellerOnboarded(seller.stripe_connect_account_id))) {
+    return NextResponse.json(
+      { error: "The seller has not finished payment setup yet. Ask them to complete it from their dashboard." },
+      { status: 409 },
+    );
   }
 
-  const onboarded = seller.stripe_connect_charges_enabled
-    ? true
-    : await checkSellerOnboarded(seller.stripe_connect_account_id);
-
-  if (!onboarded) {
-    return NextResponse.json({ error: "Seller payment setup is incomplete." }, { status: 403 });
-  }
-
-  const aml = await checkTransactionForAML(deal);
-
-  if (aml.flagged) {
-    await logAction(user.id, "aml_flags_created", "deal", deal.id, { flags: aml.flags });
-  }
-
-  const paymentIntent = await createDealPaymentIntent(
-    deal.agreed_price_gbp,
-    seller.stripe_connect_account_id,
-    deal.id,
-    user.id,
-  );
-
-  const { data: updated, error } = await supabase
-    .from("deals")
-    .update({
-      status: "in_escrow",
-      stripe_payment_intent_id: paymentIntent.id,
-      platform_fee_gbp: paymentIntent.application_fee_amount ?? null,
-      payment_made_at: new Date().toISOString(),
-    })
-    .eq("id", deal.id)
-    .select("*")
+  const { data: listing } = await admin
+    .from("listings")
+    .select("category_label, project_name, is_anonymous")
+    .eq("id", deal.listing_id)
     .single();
 
-  if (error || !updated) {
-    return NextResponse.json({ error: error?.message ?? "Unable to initiate payment." }, { status: 500 });
+  const session = await createDealCheckoutSession({
+    dealId: deal.id,
+    buyerId: user.id,
+    buyerEmail: user.email ?? "",
+    amountPence: deal.agreed_price_gbp,
+    description: `Software project purchase: ${listing ? listingDisplayTitle(listing) : "listing"}`,
+  });
+
+  const { data: updated } = await admin
+    .from("deals")
+    .update({ status: "payment_pending", stripe_checkout_session_id: session.id })
+    .eq("id", deal.id)
+    .in("status", ["loi_accepted", "payment_pending"])
+    .select("id")
+    .maybeSingle();
+
+  if (!updated || !session.url) {
+    await stripeClient().checkout.sessions.expire(session.id).catch(() => undefined);
+    return NextResponse.json({ error: "Unable to start payment. Refresh and try again." }, { status: 409 });
   }
 
   await logAction(user.id, "deal_payment_initiated", "deal", deal.id, {
-    payment_intent_id: paymentIntent.id,
+    checkout_session_id: session.id,
+    amount_pence: deal.agreed_price_gbp,
   });
 
-  return NextResponse.json({
-    deal: updated,
-    client_secret: paymentIntent.client_secret,
-  });
+  return NextResponse.json({ url: session.url });
 }

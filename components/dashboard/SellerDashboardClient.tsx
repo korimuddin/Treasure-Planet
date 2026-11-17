@@ -17,6 +17,7 @@ export type SellerRequestCard = {
   budgetMax: number;
   message: string;
   listingTitle: string;
+  ndaSigned: boolean;
 };
 
 type Stats = {
@@ -49,7 +50,10 @@ export function SellerDashboardClient({
   const [dealCards, setDealCards] = useState(deals);
   const [selectedDealId, setSelectedDealId] = useState(deals[0]?.id ?? null);
   const [autoApprove, setAutoApprove] = useState(settings.auto_approve);
+  const [error, setError] = useState<string | null>(null);
   const selectedDeal = dealCards.find((deal) => deal.id === selectedDealId) ?? null;
+  const selectedLoi = (selectedDeal?.loi_data ?? {}) as { submitted_by?: string };
+  const buyerProposed = Boolean(selectedLoi.submitted_by) && selectedLoi.submitted_by !== currentUserId;
 
   async function persistAutoApprove(nextValue: boolean) {
     setAutoApprove(nextValue);
@@ -66,11 +70,13 @@ export function SellerDashboardClient({
   }
 
   async function startPaymentSetup() {
+    setError(null);
     const response = await fetch("/api/stripe/connect-onboard", {
       method: "POST",
     });
 
     if (!response.ok) {
+      await showError(response);
       return;
     }
 
@@ -79,6 +85,11 @@ export function SellerDashboardClient({
     if (payload.url) {
       window.location.href = payload.url;
     }
+  }
+
+  async function showError(response: Response) {
+    const payload = (await response.json().catch(() => ({}))) as { error?: unknown };
+    setError(typeof payload.error === "string" ? payload.error : "Something went wrong. Please try again.");
   }
 
   async function decide(requestId: string, decision: "approve" | "decline") {
@@ -91,6 +102,7 @@ export function SellerDashboardClient({
     });
 
     if (!response.ok) {
+      await showError(response);
       return;
     }
 
@@ -107,6 +119,23 @@ export function SellerDashboardClient({
   }
 
   async function dealAction(dealId: string, action: "accept-loi" | "confirm-transfer" | "submit-loi") {
+    setError(null);
+    let counterPrice = selectedDeal?.agreed_price_gbp ?? 100;
+
+    if (action === "submit-loi") {
+      const entered = window.prompt("Your counter price in GBP (whole pounds):", String(Math.round(counterPrice / 100)));
+      const value = Math.round(Number(entered) * 100);
+      if (!entered || !Number.isFinite(value) || value < 100) return;
+      counterPrice = value;
+    }
+
+    if (
+      action === "confirm-transfer" &&
+      !window.confirm("Only confirm once the buyer has everything agreed (code, domains, accounts). Continue?")
+    ) {
+      return;
+    }
+
     const response = await fetch(`/api/deals/${dealId}/${action}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -114,7 +143,7 @@ export function SellerDashboardClient({
         action === "submit-loi"
           ? JSON.stringify({
               deal_type: selectedDeal?.deal_type ?? "acquire",
-              agreed_price_gbp: selectedDeal?.agreed_price_gbp ?? 1,
+              agreed_price_gbp: counterPrice,
               special_conditions: "Seller counter submitted from dashboard.",
             })
           : "{}",
@@ -129,6 +158,8 @@ export function SellerDashboardClient({
           ),
         );
       }
+    } else {
+      await showError(response);
     }
   }
 
@@ -138,21 +169,33 @@ export function SellerDashboardClient({
         <header className="border-b border-border pb-6">
           <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">Seller dashboard</p>
           <h1 className="mt-2 font-display text-display-lg uppercase text-cream">{sellerName}</h1>
-          <p className="mt-3 text-cream2">Review mutual NDA requests and move buyers toward data room access.</p>
+          <p className="mt-3 text-cream2">Review access requests, agree terms, and get paid when the buyer confirms receipt.</p>
+          <a
+            href="/listings/new"
+            className="btn-liquid mt-5 inline-flex px-5 py-3 font-mono text-xs uppercase tracking-[0.16em]"
+          >
+            Create a listing
+          </a>
         </header>
 
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Views" value={stats.views} />
-          <StatCard label="NDA Requests" value={stats.requests} />
+          <StatCard label="Access Requests" value={stats.requests} />
           <StatCard label="Approved" value={stats.approved} />
           <StatCard label="Awaiting Review" value={stats.awaitingReview} />
         </section>
+
+        {error && (
+          <p role="alert" className="border border-red-dim bg-red-dim px-4 py-3 text-red">
+            {error}
+          </p>
+        )}
 
         {needsPaymentSetup && (
           <section className="flex flex-col gap-4 border border-gold-dim bg-gold-dim p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">Payment setup</p>
-              <p className="mt-1 text-cream2">Complete payment setup to receive funds when your deal closes.</p>
+              <p className="mt-1 text-cream2">Set up payouts with Stripe so buyers can pay you. Stripe will verify your identity.</p>
             </div>
             <button
               type="button"
@@ -170,13 +213,13 @@ export function SellerDashboardClient({
 
         <section className="flex items-center justify-between border border-border bg-[rgba(7,15,26,0.86)] p-5">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">Auto-approve mutual NDA requests</p>
-            <p className="mt-1 text-cream2">Approved matches can move directly into full data room access.</p>
+            <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">Auto-approve access requests</p>
+            <p className="mt-1 text-cream2">Every new request is approved instantly and the buyer sees your private details.</p>
           </div>
           <button
             type="button"
             aria-pressed={autoApprove}
-            aria-label="Toggle automatic mutual NDA approval"
+            aria-label="Toggle automatic approval of access requests"
             className={`relative h-8 w-14 rounded-full border transition ${
               autoApprove ? "border-teal2 bg-teal-dim" : "border-border bg-[rgba(4,9,15,0.9)]"
             }`}
@@ -196,7 +239,7 @@ export function SellerDashboardClient({
           ))}
           {cards.length === 0 && (
             <div className="border border-border bg-[rgba(7,15,26,0.72)] p-8 text-center text-cream2">
-              No mutual NDA requests are awaiting review.
+              No access requests yet.
             </div>
           )}
         </section>
@@ -237,21 +280,26 @@ export function SellerDashboardClient({
                     </pre>
                   )}
                   <div className="mt-5 flex flex-wrap gap-3">
+                    {selectedDeal.status === "loi_sent" && !buyerProposed && (
+                      <p className="text-cream2">Your counter is with the buyer.</p>
+                    )}
                     {selectedDeal.status === "loi_sent" && (
                       <>
-                        <button
-                          type="button"
-                          className="bg-teal px-5 py-3 font-mono text-xs uppercase tracking-[0.16em] text-ink"
-                          onClick={() => dealAction(selectedDeal.id, "accept-loi")}
-                        >
-                          Accept LOI
-                        </button>
+                        {buyerProposed && (
+                          <button
+                            type="button"
+                            className="bg-teal px-5 py-3 font-mono text-xs uppercase tracking-[0.16em] text-ink"
+                            onClick={() => dealAction(selectedDeal.id, "accept-loi")}
+                          >
+                            Accept terms
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="border border-gold-dim px-5 py-3 font-mono text-xs uppercase tracking-[0.16em] text-gold"
                           onClick={() => dealAction(selectedDeal.id, "submit-loi")}
                         >
-                          Counter LOI
+                          Counter
                         </button>
                       </>
                     )}
@@ -261,8 +309,20 @@ export function SellerDashboardClient({
                         className="btn-liquid px-5 py-3 font-mono text-xs uppercase tracking-[0.16em]"
                         onClick={() => dealAction(selectedDeal.id, "confirm-transfer")}
                       >
-                        Confirm IP Transfer
+                        I have transferred the project
                       </button>
+                    )}
+                    {selectedDeal.status === "in_escrow" && (
+                      <p className="basis-full text-cream2">
+                        The buyer has paid and the payment is held. Transfer the project, then confirm here. You are
+                        paid when the buyer confirms receipt.
+                      </p>
+                    )}
+                    {selectedDeal.status === "ip_transferred" && (
+                      <p className="text-cream2">Waiting for the buyer to confirm receipt.</p>
+                    )}
+                    {selectedDeal.status === "disputed" && (
+                      <p className="text-cream2">A problem was reported. The payment is held while we review it.</p>
                     )}
                   </div>
                 </section>
@@ -313,10 +373,10 @@ function RequestCard({
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-display-sm uppercase text-cream">{card.buyerName}</h2>
             <span className="border border-teal-dim bg-teal-dim px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-teal2">
-              ✓ ID Verified
+              {card.ndaSigned ? "✓ NDA signed" : "No NDA required"}
             </span>
             <span className="border border-gold-dim bg-gold-dim px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
-              £ Funds: £{card.budgetMin.toLocaleString("en-GB")}–£{card.budgetMax.toLocaleString("en-GB")}
+              Stated budget: £{card.budgetMin.toLocaleString("en-GB")}–£{card.budgetMax.toLocaleString("en-GB")}
             </span>
           </div>
           <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">

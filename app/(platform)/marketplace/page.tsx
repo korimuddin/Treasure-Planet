@@ -10,6 +10,8 @@ type FilterKey = "all" | ListingPlatform | "gaming";
 
 const filters: { label: string; value: FilterKey }[] = [
   { label: "All", value: "all" },
+  { label: "Web", value: "web" },
+  { label: "SaaS", value: "saas" },
   { label: "iOS", value: "ios" },
   { label: "Android", value: "android" },
   { label: "macOS", value: "macos" },
@@ -70,7 +72,7 @@ export default function MarketplacePage() {
         <section className="border border-teal-dim bg-teal-dim px-4 py-3">
           <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.16em] text-teal2">
             <span className="h-2.5 w-2.5 rounded-full bg-teal2 animate-anon-pulse" />
-            All listings are anonymous until the seller approves deeper access.
+            Sellers choose what is public. Private details unlock only when the seller approves your request.
           </div>
         </section>
 
@@ -78,10 +80,10 @@ export default function MarketplacePage() {
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">Marketplace</p>
             <h1 className="mt-2 font-display text-display-lg uppercase text-cream">
-              Abandoned software, ready for a second run
+              Unfinished software, ready for a second run
             </h1>
             <p className="mt-3 max-w-2xl text-lg text-cream2">
-              Browse anonymised projects by platform, completion, deal shape, and technical signal.
+              Browse projects by platform, completion, deal shape, and technical signal.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
@@ -116,7 +118,11 @@ export default function MarketplacePage() {
 
           <div className="space-y-5">
             {visibleListings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} accessTier="public" />
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                accessTier={listing.source_code_url !== undefined ? "nda" : "public"}
+              />
             ))}
           </div>
 

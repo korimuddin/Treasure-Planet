@@ -96,18 +96,16 @@ function ListingsTable({ listings, users }: { listings: Listing[]; users: Profil
 function UsersTable({ users }: { users: Profile[] }) {
   return (
     <Table
-      headers={["Name", "Email", "Role", "Country", "KYC", "Deals", "Joined", "Actions"]}
+      headers={["Name", "Email", "Role", "Country", "Deals", "Joined", "Actions"]}
       rows={users.map((user) => [
         user.full_name ?? "Unknown",
         user.email ?? "No email",
         user.role,
         user.country ?? "-",
-        user.kyc_status,
         user.deal_count,
         date(user.created_at),
         <div key={user.id} className="flex flex-wrap gap-2">
           <PatchButton endpoint={`/api/admin/users/${user.id}`} body={{ suspended: !user.suspended_at }} label={user.suspended_at ? "Unsuspend" : "Suspend account"} />
-          <PatchButton endpoint={`/api/admin/users/${user.id}`} body={{ kyc_status: "verified" }} label="Override KYC" />
         </div>,
       ])}
     />
@@ -131,6 +129,12 @@ function DealsTable({ deals, users, listings }: { deals: Deal[]; users: Profile[
         <div key={deal.id} className="flex flex-wrap gap-2">
           <PatchButton endpoint={`/api/admin/deals/${deal.id}`} body={{ voyage_manager_name: "Voyage Manager", voyage_manager_email: "ops@treasureplanet.io" }} label="Assign Voyage Manager" />
           <PatchButton endpoint={`/api/admin/deals/${deal.id}`} body={{ flag: true }} label="Flag deal" />
+          {["in_escrow", "ip_transferred", "disputed"].includes(deal.status) && (
+            <>
+              <PatchButton endpoint={`/api/admin/deals/${deal.id}`} body={{ action: "release" }} label="Release to seller" confirm="Pay the seller now? This cannot be undone." />
+              <PatchButton endpoint={`/api/admin/deals/${deal.id}`} body={{ action: "refund" }} label="Refund buyer" confirm="Refund the buyer in full and cancel the deal? This cannot be undone." />
+            </>
+          )}
         </div>,
       ])}
     />
@@ -229,11 +233,39 @@ function ActionButtons({ endpoint, viewLabel }: { endpoint: string; viewLabel: s
   );
 }
 
-function PatchButton({ endpoint, body, label }: { endpoint: string; body: object; label: string }) {
+function PatchButton({
+  endpoint,
+  body,
+  label,
+  confirm,
+}: {
+  endpoint: string;
+  body: object;
+  label: string;
+  /** When set, asks before sending. Use for anything that moves money. */
+  confirm?: string;
+}) {
+  async function run() {
+    if (confirm && !window.confirm(confirm)) return;
+    const response = await fetch(endpoint, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as { error?: unknown };
+      window.alert(typeof payload.error === "string" ? payload.error : "The action failed.");
+      return;
+    }
+
+    window.location.reload();
+  }
+
   return (
     <button
       className="border border-border px-2 py-1 font-mono text-[10px] uppercase text-cream2 hover:border-gold hover:text-gold"
-      onClick={() => fetch(endpoint, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })}
+      onClick={run}
       type="button"
     >
       {label}

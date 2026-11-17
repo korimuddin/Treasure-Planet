@@ -3,6 +3,8 @@ import type { FilteredListing, AccessTier } from "@/lib/listings/access";
 import type { ListingPlatform } from "@/types/database";
 
 const platformStyles: Record<ListingPlatform, { label: string; color: string }> = {
+  web: { label: "Web app", color: "#7FD1E0" },
+  saas: { label: "SaaS", color: "#E0C97F" },
   ios: { label: "iOS", color: "#85B7EB" },
   android: { label: "Android", color: "#3DB890" },
   macos: { label: "macOS", color: "#C9A0FF" },
@@ -31,7 +33,9 @@ export function ListingCard({
       )
     : "Draft";
   const isNdaTier = accessTier === "nda";
-  const displayName = isNdaTier && listing.project_name ? listing.project_name : "Anonymous project";
+  // The server only includes project_name when this viewer is allowed to see it.
+  const displayName = listing.project_name ?? null;
+  const requestLabel = listing.requires_nda ? "Sign NDA & Request Access" : "Request Access";
 
   return (
     <article className="group relative grid gap-6 overflow-hidden border border-border bg-[rgba(7,15,26,0.88)] p-5 transition hover:border-border2 hover:bg-[rgba(7,15,26,0.96)] lg:grid-cols-[1fr_220px]">
@@ -62,19 +66,28 @@ export function ListingCard({
 
         <div>
           <h2 className="flex flex-wrap items-end gap-3 font-display text-display-sm uppercase text-cream">
-            {listing.is_anonymous && !isNdaTier ? (
-              <span className="redacted h-8 w-56 select-none text-transparent">Anonymous project</span>
-            ) : (
+            {displayName ? (
               <span>{displayName}</span>
+            ) : (
+              <span className="redacted h-8 w-56 select-none text-transparent">Anonymous project</span>
             )}
             <span className="pb-1 font-mono text-xs uppercase tracking-[0.14em] text-muted">
               - {listing.category_label}
             </span>
           </h2>
           <p className="mt-3 max-w-3xl text-lg leading-7 text-cream2">{listing.public_summary}</p>
-          <p className="mt-2 font-mono text-xs uppercase tracking-[0.14em] text-teal2">
-            Registered details and NDA material stay hidden until access is granted.
-          </p>
+          {listing.seller_name && (
+            <p className="mt-2 font-mono text-xs uppercase tracking-[0.14em] text-muted">Seller: {listing.seller_name}</p>
+          )}
+          {isNdaTier ? (
+            <PrivateDetails listing={listing} />
+          ) : (
+            <p className="mt-2 font-mono text-xs uppercase tracking-[0.14em] text-teal2">
+              {listing.requires_nda
+                ? "Private details unlock after you sign the mutual NDA and the seller approves."
+                : "Private details unlock when the seller approves your request. No NDA required."}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -109,12 +122,14 @@ export function ListingCard({
         </div>
 
         <div className="mt-6 grid gap-3">
-          <Link
-            className="btn-liquid px-4 py-3 text-center font-mono text-[11px] uppercase tracking-[0.16em]"
-            href={`/nda/${listing.id}`}
-          >
-            Request NDA Access
-          </Link>
+          {!isNdaTier && (
+            <Link
+              className="btn-liquid px-4 py-3 text-center font-mono text-[11px] uppercase tracking-[0.16em]"
+              href={`/nda/${listing.id}`}
+            >
+              {requestLabel}
+            </Link>
+          )}
           <Link
             className="border border-border px-4 py-3 text-center font-mono text-[11px] uppercase tracking-[0.16em] text-cream2 transition hover:border-border2 hover:text-gold"
             href={`/listings/${listing.id}`}
@@ -127,12 +142,42 @@ export function ListingCard({
   );
 }
 
+function PrivateDetails({ listing }: { listing: FilteredListing }) {
+  const rows: [string, string | null | undefined][] = [
+    ["Source / repository", listing.source_code_url],
+    ["Architecture", listing.architecture_doc],
+    ["Roadmap", listing.roadmap],
+    [
+      "Revenue",
+      listing.revenue_data && Object.keys(listing.revenue_data as object).length > 0
+        ? JSON.stringify(listing.revenue_data)
+        : null,
+    ],
+  ];
+  const visible = rows.filter(([, value]) => value);
+
+  if (visible.length === 0) {
+    return null;
+  }
+
+  return (
+    <dl className="mt-4 space-y-3 border border-teal-dim bg-teal-dim p-4">
+      {visible.map(([label, value]) => (
+        <div key={label}>
+          <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-teal2">{label}</dt>
+          <dd className="mt-1 whitespace-pre-wrap break-words text-cream2">{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function AccessBadge({ tier }: { tier: AccessTier }) {
   if (tier === "nda") {
     return (
       <span className="inline-flex items-center gap-2 border border-teal-dim bg-teal-dim px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-teal2">
         <span className="h-2 w-2 rounded-full bg-teal2 animate-anon-pulse" />
-        NDA Required
+        Access Granted
       </span>
     );
   }

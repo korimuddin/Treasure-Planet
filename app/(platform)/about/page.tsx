@@ -3,19 +3,19 @@
 import { useState } from "react";
 
 const cards = [
-  ["Anonymous by Default", "Listings hide names and sensitive assets until a buyer earns deeper access."],
-  ["Mutual NDA on Every Deal", "Both seller IP and buyer strategy are protected before private detail moves."],
-  ["Seller Controls the Gate", "Sellers decide who enters the data room after reviewing verified buyer context."],
+  ["Anonymous If You Want", "Sellers choose whether to hide the project and their name until they approve a buyer."],
+  ["Mutual NDA, Seller's Choice", "By default buyers sign a mutual NDA before requesting private details. Sellers can switch it off."],
+  ["Seller Controls the Gate", "Sellers decide who sees the private details after reading each request."],
   ["Three Deal Structures", "Acquire, cofound, or merge depending on what the project and buyer need."],
   ["Aligned Pricing", "Asking prices, budgets, and offers stay visible enough to avoid wasted cycles."],
-  ["Voyage Manager", "Larger deals are flagged for extra operational support during closing."],
+  ["Payment Held Until Receipt", "Purchases are paid through Stripe and released to the seller only when the buyer confirms receipt."],
 ];
 
 const faqs = [
-  ["Why anonymous?", "Anonymity lets sellers show enough signal to attract serious buyers without exposing customers, code, or reputation too early."],
+  ["Why anonymous?", "Anonymity lets sellers show enough signal to attract serious buyers without exposing the project or themselves too early. It is optional."],
   ["What makes the NDA mutual?", "The promise runs both ways: seller materials stay confidential, and buyer plans, budgets, and acquisition strategy are protected too."],
-  ["How does seller approval work?", "After signing, the seller reviews the buyer profile, budget, and intent before granting data room access."],
-  ["How is the NDA enforced?", "The platform records signature status, access decisions, and account actions. Breach can lead to removal and legal proceedings."],
+  ["How does seller approval work?", "The seller reads the buyer's name, stated budget, and message, then approves or declines."],
+  ["How is the NDA enforced?", "The NDA is an agreement between buyer and seller. We record who signed, when, and the exact wording, and email both parties a copy. We can remove accounts that breach it, but we are not a party to it and cannot enforce it for you."],
   ["What is a no-shop clause?", "After an LOI is accepted, the seller pauses competing deal activity for a defined period while the buyer completes diligence."],
 ];
 

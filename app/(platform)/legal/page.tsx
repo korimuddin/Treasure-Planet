@@ -2,35 +2,37 @@
 
 import { useState } from "react";
 
+const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "hello@treasureplanet.io";
+
+// PLAIN-ENGLISH STARTER TERMS. These describe what the site actually does.
+// They have not been reviewed by a solicitor: get them checked when you can,
+// and keep them in step with the product whenever behaviour changes.
 const docs = {
   "Terms of Service": [
-    ["Platform Role", "Treasure Planet provides marketplace tools for discovery, diligence, messaging, NDA access, LOI workflow, and escrow coordination. Users remain responsible for their own commercial decisions and representations."],
-    ["Accounts", "Users must provide accurate registration, identity, and payment information. We may suspend accounts that provide misleading information, misuse confidential material, or attempt to bypass platform workflows."],
-    ["Listings and Offers", "Sellers must own or control the rights they list. Buyers must only submit offers they are authorised and financially prepared to pursue."],
-    ["Fees and Payments", "Platform fees are collected through Stripe Connect as part of the payment flow. Funds may be held until deal milestones are confirmed."],
-    ["Conduct", "Users must communicate honestly, preserve confidentiality, respect access limits, and avoid harassment, spam, or circumvention."],
+    ["What Treasure Planet is", "Treasure Planet is an online marketplace where people list unfinished or dormant software projects and other people ask to buy, co-found or merge them. We provide the listing, messaging, agreement-recording and payment tools. We are not a party to any deal, we do not own or inspect the projects, and we do not give legal, financial or tax advice."],
+    ["Accounts", "You must give accurate details and confirm your email address. You are responsible for what happens under your account. We may suspend accounts that mislead other users, misuse private material, or try to get around the site's rules."],
+    ["Listings", "Sellers must own, or have the right to sell, everything they list, and must describe it honestly. Sellers choose whether a listing is anonymous and whether buyers must sign the mutual NDA. We do not verify ownership, code quality, revenue or any other claim in a listing. Buyers should do their own checks before paying."],
+    ["Payments", "Purchases are paid through Stripe, our payment provider. The buyer pays the agreed price in full. Stripe holds the payment and it is released to the seller only when the buyer confirms they have received the project. Treasure Planet never holds your money itself. Co-found and merge arrangements are not paid through the site."],
+    ["Our fee", "We charge the seller 10% of the purchase price, deducted when the payment is released. There are no listing fees. If a deal is refunded before release, no fee is charged."],
+    ["Problems and refunds", "While a payment is held, either party can report a problem. The payment then stays held while we review the messages and evidence in the deal, and we decide whether to release it to the seller or refund the buyer. If the seller marks the project as transferred and the buyer neither confirms nor reports a problem within 7 days, we may release the payment. Once a payment has been released it cannot be reversed by us."],
+    ["Conduct", "Deal honestly, keep private material private, and do not harass, spam or attempt to take a deal off the site to avoid the fee after being introduced here."],
+    ["Liability", "The site is provided as it is. To the extent the law allows, we are not responsible for losses arising from deals between users, from inaccurate listings, or from a user breaking an agreement with another user. Nothing here limits liability that cannot legally be limited."],
   ],
   "Privacy Policy": [
-    ["Controller", "Treasure Planet acts as controller for account, profile, compliance, and marketplace usage data. ICO registration is maintained for UK data protection accountability."],
-    ["Data We Process", "We process identity details, contact information, KYC status, messages, NDA records, listing activity, offer data, payment metadata, and support interactions."],
-    ["DocuSign Storage", "Executed NDA documents and signature evidence may be stored by DocuSign and referenced in Treasure Planet records for access control and audit history."],
-    ["UK GDPR Rights", "Users may request access, correction, deletion, restriction, portability, and objection subject to legal, security, and contractual retention limits."],
-    ["Retention", "Deal, NDA, compliance, and payment records are retained for operational, tax, fraud prevention, and dispute management purposes."],
+    ["Who we are", "Treasure Planet decides how your personal data is used for the purposes below (we are the controller). Contact us at " + contactEmail + "."],
+    ["What we collect", "Your name, email address, country and company (if given); your listings, access requests, messages and deals; a record of any NDA you sign, including the name you typed, the time and your IP address; and basic usage and error data."],
+    ["Payments and seller checks", "Payment details are collected and processed by Stripe, not by us. Sellers who want to be paid are verified by Stripe directly. We receive confirmation of the result, not your identity documents."],
+    ["Who we share it with", "The other party to your request or deal sees what is needed to deal with you (for example, your name on a signed NDA). We use service providers to run the site: Supabase (database and sign-in), Stripe (payments), Resend (email), Netlify (hosting), Sentry (error reports) and PostHog (usage analytics)."],
+    ["How long we keep it", "For as long as your account is open. If you delete your account we remove your personal details, but keep deal, payment and signed-agreement records where we need them for tax, disputes or the other party's records."],
+    ["Your rights", "Under UK data protection law you can ask for a copy of your data, ask us to correct or delete it, and object to or restrict how we use it. You can also complain to the Information Commissioner's Office (ico.org.uk)."],
   ],
-  "NDA Framework": [
-    ["Mutual Scope", "The NDA is mutual. Seller product material, code, customer information, and commercial data are protected, and buyer strategy, budget, acquisition plans, and diligence notes are also protected."],
-    ["Signing Method", "The NDA is signed via DocuSign and associated with the buyer, seller, listing, request, and timestamped signature record."],
-    ["Term", "Confidentiality obligations last for a 5-year term from signature unless a longer duty applies to trade secrets or legally protected material."],
-    ["Access Gate", "Signing does not guarantee access. Sellers approve or decline requests after reviewing the verified buyer profile and stated intent."],
-    ["Breach", "Breach may result in permanent ban, access revocation, evidence preservation, and legal proceedings."],
-  ],
-  "AML Policy": [
-    ["Six-Layer Framework", "Our AML framework covers identity verification, KYC gate, sanctions screening, payment monitoring, manual review, and record retention."],
-    ["KYC Gate", "Buyers and sellers must pass verification before sensitive deal actions such as data room access, listing publication, or escrow movement."],
-    ["MLRO", "A designated MLRO reviews escalations, suspicious indicators, sanctions alerts, and high-value transaction patterns."],
-    ["Sanctions Screening", "Users and relevant payment parties may be screened against sanctions and watchlist data before or during deal activity."],
-    ["Monitoring", "We monitor unusual pricing, repeated failed payments, inconsistent identities, and attempts to avoid platform controls."],
-    ["Reporting", "Suspicious activity may be reported to competent authorities where required by applicable law."],
+  "Mutual NDA": [
+    ["When it applies", "Each seller decides whether buyers must sign the mutual NDA before requesting access to a listing's private details. Listings show which applies."],
+    ["Who it is between", "The NDA is an agreement between the buyer and the seller only. Treasure Planet records it but is not a party to it, and cannot enforce it on anyone's behalf. If the other party breaks it, any claim is yours to bring."],
+    ["How it is signed", "The buyer signs by typing their full legal name and ticking a box. The seller accepts the same terms when publishing the listing and by approving the buyer. We record the name, time, IP address and the exact wording agreed, and email a copy to both parties."],
+    ["What we do not promise", "We do not verify the identity of buyers. A signed NDA discourages misuse and gives you a record, but it cannot physically stop someone copying what you show them. Share only what you are comfortable sharing, and consider granting repository access yourself, directly, once you trust the buyer."],
+    ["Signing is not access", "Signing the NDA sends a request. The seller still approves or declines it."],
+    ["The wording", "The full agreement is shown on the request page before you sign."],
   ],
 };
 

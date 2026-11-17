@@ -1,44 +1,38 @@
 import { NextResponse } from "next/server";
+import { requireUser } from "@/lib/auth/session";
 import { logAction } from "@/lib/compliance/audit";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 type RouteContext = { params: { dealId: string } };
 
+/** Accepts the terms on the table. You cannot accept terms you proposed yourself. */
 export async function POST(_request: Request, { params }: RouteContext) {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth.error) return auth.error;
+  const { user, admin } = auth;
 
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: deal } = await admin.from("deals").select("*").eq("id", params.dealId).maybeSingle();
 
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  }
-
-  const { data: deal } = await supabase
-    .from("deals")
-    .select("*")
-    .eq("id", params.dealId)
-    .eq("seller_id", user.id)
-    .single();
-
-  if (!deal) {
+  if (!deal || (deal.buyer_id !== user.id && deal.seller_id !== user.id)) {
     return NextResponse.json({ error: "Deal not found." }, { status: 404 });
   }
 
-  if (deal.status !== "loi_sent") {
-    return NextResponse.json({ error: "Only sent LOIs can be accepted." }, { status: 400 });
+  const loi = deal.loi_data as { submitted_by?: string } | null;
+
+  if (deal.status !== "loi_sent" || !loi?.submitted_by) {
+    return NextResponse.json({ error: "There are no proposed terms to accept." }, { status: 400 });
+  }
+
+  if (loi.submitted_by === user.id) {
+    return NextResponse.json({ error: "The other party must accept the terms you proposed." }, { status: 403 });
   }
 
   const now = new Date();
   const expires = new Date(now);
   expires.setDate(expires.getDate() + 75);
 
-  const { data: updated, error } = await supabase
+  // Guarding on the exact price stops a counter-offer slipping in between
+  // reading the terms and accepting them.
+  const { data: updated } = await admin
     .from("deals")
     .update({
       status: "loi_accepted",
@@ -47,28 +41,31 @@ export async function POST(_request: Request, { params }: RouteContext) {
       noshop_expires_at: expires.toISOString(),
     })
     .eq("id", deal.id)
+    .eq("status", "loi_sent")
+    .eq("agreed_price_gbp", deal.agreed_price_gbp)
     .select("*")
-    .single();
+    .maybeSingle();
 
-  if (error || !updated) {
-    return NextResponse.json({ error: error?.message ?? "Unable to accept LOI." }, { status: 500 });
+  if (!updated) {
+    return NextResponse.json({ error: "The terms changed. Refresh and review them again." }, { status: 409 });
   }
 
-  try {
-    const admin = createAdminClient();
-    await Promise.all([
-      admin.from("listings").update({ status: "under_offer" }).eq("id", deal.listing_id),
-      admin
-        .from("nda_requests")
-        .update({ status: "expired" })
-        .eq("listing_id", deal.listing_id)
-        .neq("id", deal.nda_request_id ?? ""),
-    ]);
-  } catch {
-    // Admin credentials may be absent in local preview.
+  await admin.from("listings").update({ status: "under_offer" }).eq("id", deal.listing_id).eq("status", "live");
+
+  let others = admin
+    .from("nda_requests")
+    .update({ status: "expired" })
+    .eq("listing_id", deal.listing_id)
+    .in("status", ["pending_nda", "pending_review"]);
+
+  if (deal.nda_request_id) {
+    others = others.neq("id", deal.nda_request_id);
   }
+
+  await others;
 
   await logAction(user.id, "loi_accepted", "deal", updated.id, {
+    agreed_price_gbp: updated.agreed_price_gbp,
     noshop_expires_at: updated.noshop_expires_at,
   });
 

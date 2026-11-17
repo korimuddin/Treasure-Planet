@@ -14,6 +14,7 @@ const publicColumns = [
   "public_summary",
   "status",
   "is_anonymous",
+  "requires_nda",
   "views_count",
   "created_at",
   "updated_at",
@@ -48,11 +49,24 @@ export function getListingAccessTier(
   return "public";
 }
 
+/** The name safe to show this viewer: the real name only if public or unlocked. */
+export function listingDisplayTitle(listing: Pick<Listing, "is_anonymous" | "project_name" | "category_label">) {
+  return !listing.is_anonymous && listing.project_name ? listing.project_name : listing.category_label;
+}
+
 export function filterListingByTier(listing: Listing, tier: AccessTier): FilteredListing {
   const filtered = pick(listing, publicColumns) as FilteredListing;
 
   if (tier === "registered" || tier === "nda") {
     Object.assign(filtered, pick(listing, registeredColumns));
+  }
+
+  // A seller who chose not to be anonymous shows the project and their name publicly.
+  if (!listing.is_anonymous) {
+    Object.assign(filtered, {
+      project_name: listing.project_name,
+      seller_name: listing.seller_name,
+    });
   }
 
   if (tier === "nda") {

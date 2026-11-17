@@ -1,18 +1,17 @@
 const cards = [
-  ["What Is Our NDA?", "A mutual confidentiality agreement signed before private listing data is shown."],
+  ["What Is the NDA?", "A mutual confidentiality agreement between buyer and seller, signed before private listing details are shown. Sellers can switch it off for a listing."],
   ["Why Mutual?", "Sellers protect product assets while buyers protect strategy, budget, and acquisition intent."],
   ["Seller Approval Gate", "Signing starts the review; the seller still decides whether the buyer enters the data room."],
-  ["How Enforced", "Signature records, access logs, account sanctions, and legal proceedings support enforcement."],
+  ["What We Record", "The name typed, the time, the IP address, and the exact wording. Both parties get a copy by email. Enforcing the agreement is between the two parties."],
 ];
 
-const steps = ["Request", "Verify", "Sign", "Seller Review", "Data Room", "Deal Chat"];
+const steps = ["Browse", "Sign", "Request", "Seller Review", "Private Details", "Deal Chat"];
 
 const rows = [
   ["One-sided protection", "Mutual protection"],
-  ["Automatic access", "Approval gate"],
-  ["No buyer intelligence", "Verified profile"],
-  ["Anonymous counterpart", "KYC verified"],
-  ["No durable record", "DocuSign record"],
+  ["Automatic access", "Seller approval"],
+  ["No context on the buyer", "Name, budget and message"],
+  ["No record kept", "Timestamped copy emailed to both"],
 ];
 
 export default function HowNdasWorkPage() {
@@ -23,7 +22,7 @@ export default function HowNdasWorkPage() {
           <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">Mutual NDA</p>
           <h1 className="mt-3 font-display text-display-lg uppercase text-cream">How NDAs work</h1>
           <p className="mt-4 max-w-3xl text-cream2">
-            Treasure Planet uses a mutual NDA and seller approval gate before sensitive project material is revealed.
+            By default, buyers sign a mutual NDA and the seller approves them before private project details are revealed.
           </p>
         </header>
 
@@ -49,7 +48,7 @@ export default function HowNdasWorkPage() {
 
         <section className="overflow-hidden border border-border">
           <div className="grid grid-cols-2 bg-ink2 font-mono text-xs uppercase tracking-[0.16em] text-gold">
-            <div className="border-r border-border p-4">Standard Click-Wrap NDA</div>
+            <div className="border-r border-border p-4">No agreement</div>
             <div className="p-4">Treasure Planet Mutual NDA</div>
           </div>
           {rows.map(([left, right]) => (
@@ -63,7 +62,7 @@ export default function HowNdasWorkPage() {
         <section className="border border-teal-dim bg-teal-dim p-6">
           <h2 className="font-display text-display-sm uppercase text-teal2">Simple. Mutual. Protected.</h2>
           <p className="mt-2 text-cream2">
-            Clear signing, controlled access, verified profiles, and seller approval keep the process focused.
+            Clear signing, a record for both sides, and seller approval keep the process focused.
           </p>
         </section>
       </div>

@@ -21,7 +21,7 @@ export default async function NewListingPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, kyc_status, full_name")
+    .select("role, full_name")
     .eq("id", user.id)
     .single();
 
@@ -37,15 +37,13 @@ export default async function NewListingPage() {
     );
   }
 
-  if (profile.kyc_status !== "verified") {
+  if (!user.email_confirmed_at) {
     return (
       <main className="min-h-screen px-6 py-12">
         <section className="mx-auto max-w-2xl border border-border bg-[rgba(7,15,26,0.96)] p-8 backdrop-blur-3xl">
-          <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">Verification required</p>
-          <h1 className="mt-4 font-display text-display-sm uppercase text-cream">Verify before listing</h1>
-          <p className="mt-3 text-cream2">
-            Seller verification protects buyer confidence before a project can go live.
-          </p>
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">Confirm your email</p>
+          <h1 className="mt-4 font-display text-display-sm uppercase text-cream">Check your inbox first</h1>
+          <p className="mt-3 text-cream2">Confirm your email address using the link we sent you before listing.</p>
           <Link
             href="/dashboard/seller"
             className="btn-liquid mt-6 inline-flex px-5 py-3 font-mono text-xs uppercase tracking-[0.16em]"
