@@ -1,46 +1,40 @@
-import { createHash } from "crypto";
-import { NextResponse } from "next/server";
+import { requireUser } from "@/lib/auth/session";
 import { logAction } from "@/lib/compliance/audit";
-import { sendEmail } from "@/lib/email/notifications";
-import { createClient } from "@/lib/supabase/server";
 
+/** Returns the signed-in user's own data as a JSON file download. */
 export async function POST() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  }
+  const auth = await requireUser({ allowUnconfirmed: true });
+  if (auth.error) return auth.error;
+  const { user, profile, admin } = auth;
+  const mine = `buyer_id.eq.${user.id},seller_id.eq.${user.id}`;
 
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-
-  const [profile, listings, ndaBuyer, ndaSeller, dealsBuyer, dealsSeller] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user.id).single(),
-    supabase.from("listings").select("*").eq("seller_id", user.id),
-    supabase.from("nda_requests").select("*").eq("buyer_id", user.id),
-    supabase.from("nda_requests").select("*").eq("seller_id", user.id),
-    supabase.from("deals").select("*").eq("buyer_id", user.id),
-    supabase.from("deals").select("*").eq("seller_id", user.id),
+  const [listings, requests, deals, messages] = await Promise.all([
+    admin.from("listings").select("*").eq("seller_id", user.id),
+    admin.from("nda_requests").select("*").or(mine),
+    admin.from("deals").select("*").or(mine),
+    admin.from("messages").select("*").eq("sender_id", user.id),
   ]);
 
-  const exportData = {
-    profile: profile.data,
-    listings: listings.data ?? [],
-    nda_requests: [...(ndaBuyer.data ?? []), ...(ndaSeller.data ?? [])],
-    deals: [...(dealsBuyer.data ?? []), ...(dealsSeller.data ?? [])],
-    generated_at: new Date().toISOString(),
-  };
-  const json = JSON.stringify(exportData, null, 2);
-  const token = createHash("sha256").update(`${user.id}:${Date.now()}`).digest("hex").slice(0, 16);
-  const downloadLink = `data:application/json;charset=utf-8,${encodeURIComponent(json)}`;
-
-  await sendEmail({
-    to: user.email,
-    subject: "Your Treasure Planet data export",
-    html: `<p>Your subject access request is ready.</p><p><a href="${downloadLink}" download="treasure-planet-${token}.json">Download JSON export</a></p>`,
-  });
   await logAction(user.id, "gdpr_subject_access_requested", "user", user.id);
 
-  return NextResponse.json({ sent: true });
+  const body = JSON.stringify(
+    {
+      profile,
+      listings: listings.data ?? [],
+      access_requests: requests.data ?? [],
+      deals: deals.data ?? [],
+      messages_sent: messages.data ?? [],
+      generated_at: new Date().toISOString(),
+    },
+    null,
+    2,
+  );
+
+  return new Response(body, {
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Disposition": 'attachment; filename="treasure-planet-data-export.json"',
+      "Cache-Control": "no-store",
+    },
+  });
 }

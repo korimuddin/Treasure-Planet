@@ -1,58 +1,38 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { clientIp, requireUser } from "@/lib/auth/session";
 import { logAction } from "@/lib/compliance/audit";
-import { buyerApprovedEmail, sellerReviewEmail, sendEmail } from "@/lib/email/notifications";
-import { createMutualNDA, sendNDAForSigning } from "@/lib/pandadoc/client";
-import { createClient } from "@/lib/supabase/server";
+import { buyerApprovedEmail, ndaCopyEmail, sellerReviewEmail, sendEmail } from "@/lib/email/notifications";
+import { listingDisplayTitle } from "@/lib/listings/access";
+import { NDA_TEXT, NDA_VERSION, ndaTextHash } from "@/lib/nda/template";
 
 export const runtime = "nodejs";
 
 const requestSchema = z.object({
   listing_id: z.string().uuid(),
-  first_name: z.string().min(1),
-  last_name: z.string().min(1),
-  email: z.string().email(),
-  capacity: z.enum(["company", "individual"]),
-  country: z.string().min(1),
   deal_type: z.enum(["acquire", "cofound", "merge", "undecided"]),
   budget_min_gbp: z.number().int().min(0),
   budget_max_gbp: z.number().int().min(0),
-  message: z.string().optional(),
+  message: z.string().max(2000).optional(),
+  // Click-to-sign: required only when the listing requires an NDA.
+  signed_name: z.string().trim().min(3).max(120).optional(),
+  agree: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth.error) return auth.error;
+  const { user, profile, admin } = auth;
 
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  }
-
-  const parsed = requestSchema.safeParse(await request.json());
+  const parsed = requestSchema.safeParse(await request.json().catch(() => null));
 
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { data: buyer } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, kyc_status, company, country, avatar_initials")
-    .eq("id", user.id)
-    .single();
-
-  if (!buyer || buyer.kyc_status !== "verified") {
-    return NextResponse.json({ error: "KYC verification is required before requesting access." }, { status: 403 });
-  }
-
-  const { data: listing } = await supabase
+  const { data: listing } = await admin
     .from("listings")
-    .select("id, seller_id, status, category_label, project_name, asking_price_gbp")
+    .select("id, seller_id, status, category_label, project_name, is_anonymous, requires_nda")
     .eq("id", parsed.data.listing_id)
     .eq("status", "live")
     .single();
@@ -61,28 +41,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Listing not found." }, { status: 404 });
   }
 
-  const { data: existing } = await supabase
+  if (listing.seller_id === user.id) {
+    return NextResponse.json({ error: "You cannot request access to your own listing." }, { status: 400 });
+  }
+
+  if (listing.requires_nda && (!parsed.data.agree || !parsed.data.signed_name)) {
+    return NextResponse.json(
+      { error: "Type your full legal name and tick the agreement box to sign the mutual NDA." },
+      { status: 400 },
+    );
+  }
+
+  const { data: existing } = await admin
     .from("nda_requests")
-    .select("*")
+    .select("id, status")
     .eq("listing_id", listing.id)
     .eq("buyer_id", user.id)
     .maybeSingle();
 
   if (existing) {
-    return NextResponse.json({ error: "Request already exists.", request: existing }, { status: 409 });
+    return NextResponse.json({ error: "You have already requested access to this listing." }, { status: 409 });
   }
 
-  const { data: seller } = await supabase
-    .from("profiles")
-    .select("id, full_name, email")
-    .eq("id", listing.seller_id)
-    .single();
-
-  const { data: settings } = await supabase
-    .from("seller_settings")
-    .select("*")
-    .eq("seller_id", listing.seller_id)
-    .maybeSingle();
+  const [{ data: seller }, { data: settings }] = await Promise.all([
+    admin.from("profiles").select("id, full_name, email").eq("id", listing.seller_id).single(),
+    admin.from("seller_settings").select("*").eq("seller_id", listing.seller_id).maybeSingle(),
+  ]);
 
   const autoApproved = Boolean(
     settings?.auto_approve &&
@@ -91,7 +75,9 @@ export async function POST(request: Request) {
         settings.auto_approve_deal_types.includes(parsed.data.deal_type)),
   );
 
-  const { data: ndaRequest, error: insertError } = await supabase
+  const now = new Date().toISOString();
+  const signed = listing.requires_nda;
+  const { data: ndaRequest, error: insertError } = await admin
     .from("nda_requests")
     .insert({
       listing_id: listing.id,
@@ -101,78 +87,92 @@ export async function POST(request: Request) {
       budget_min_gbp: parsed.data.budget_min_gbp,
       budget_max_gbp: parsed.data.budget_max_gbp,
       message: parsed.data.message,
-      status: "pending_nda",
+      nda_required: signed,
+      signed_name: signed ? parsed.data.signed_name : null,
+      signed_at: signed ? now : null,
+      signed_ip: signed ? clientIp(request) : null,
+      nda_version: signed ? NDA_VERSION : null,
+      nda_text_sha256: signed ? ndaTextHash() : null,
+      status: autoApproved ? "approved" : "pending_review",
       auto_approved: autoApproved,
+      seller_decided_at: autoApproved ? now : null,
     })
     .select("*")
     .single();
 
   if (insertError || !ndaRequest) {
-    return NextResponse.json({ error: insertError?.message ?? "Unable to create request." }, { status: 500 });
+    return NextResponse.json({ error: "Unable to create the request." }, { status: 500 });
   }
 
-  const listingTitle = listing.project_name ?? listing.category_label;
-  const buyerName = `${parsed.data.first_name} ${parsed.data.last_name}`;
-
-  try {
-    const document = await createMutualNDA({
-      buyerName,
-      buyerEmail: parsed.data.email,
-      sellerEmail: seller?.email ?? "",
-      listingTitle,
-      ndaRequestId: ndaRequest.id,
+  if (autoApproved) {
+    await admin.from("listing_nda_access").upsert({
+      listing_id: listing.id,
+      user_id: user.id,
+      status: "approved",
     });
+  }
 
-    await sendNDAForSigning(document.id);
+  // Until the seller approves, the buyer only ever sees the public title.
+  const publicTitle = listingDisplayTitle(listing);
+  const sellerTitle = listing.project_name ?? listing.category_label;
+  const buyerName = parsed.data.signed_name ?? profile.full_name ?? "A registered buyer";
 
-    await supabase
-      .from("nda_requests")
-      .update({
-        pandadoc_doc_id: document.id,
-      })
-      .eq("id", ndaRequest.id);
-  } catch (error) {
-    await supabase
-      .from("nda_requests")
-      .update({
-        pandadoc_status: "configuration_error",
-      })
-      .eq("id", ndaRequest.id);
+  if (signed && ndaRequest.signed_name && ndaRequest.signed_at && ndaRequest.nda_text_sha256) {
+    const copy = {
+      signedName: ndaRequest.signed_name,
+      signedAt: ndaRequest.signed_at,
+      ndaVersion: NDA_VERSION,
+      ndaTextSha256: ndaRequest.nda_text_sha256,
+      requestId: ndaRequest.id,
+      ndaText: NDA_TEXT,
+    };
 
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to prepare the mutual NDA." },
-      { status: 500 },
-    );
+    await Promise.all([
+      sendEmail({
+        to: user.email,
+        subject: "Your copy of the mutual NDA",
+        html: ndaCopyEmail({ ...copy, listingTitle: publicTitle }),
+      }),
+      sendEmail({
+        to: seller?.email,
+        subject: "A buyer signed your mutual NDA",
+        html: ndaCopyEmail({ ...copy, listingTitle: sellerTitle }),
+      }),
+    ]).catch(() => undefined);
   }
 
   await sendEmail({
     to: seller?.email,
-    subject: "New mutual NDA request",
+    subject: "New access request",
     html: sellerReviewEmail({
       sellerName: seller?.full_name,
       buyerName,
-      buyerEmail: parsed.data.email,
-      listingTitle,
+      listingTitle: sellerTitle,
       message: parsed.data.message,
+      ndaSigned: signed,
     }),
-  });
-
-  await logAction(user.id, "nda_request_created", "nda_request", ndaRequest.id, {
-    listing_id: listing.id,
-    auto_approved: autoApproved,
-  });
+  }).catch(() => undefined);
 
   if (autoApproved) {
     await sendEmail({
-      to: parsed.data.email,
-      subject: "Mutual NDA request approved",
+      to: user.email,
+      subject: "Access request approved",
       html: buyerApprovedEmail({
-        buyerName,
-        listingTitle,
+        buyerName: profile.full_name,
+        listingTitle: sellerTitle,
         message: settings?.response_message,
       }),
-    });
+    }).catch(() => undefined);
   }
 
-  return NextResponse.json({ request: { ...ndaRequest, auto_approved: autoApproved } }, { status: 201 });
+  await logAction(
+    user.id,
+    "nda_request_created",
+    "nda_request",
+    ndaRequest.id,
+    { listing_id: listing.id, auto_approved: autoApproved, nda_signed: signed },
+    clientIp(request),
+  );
+
+  return NextResponse.json({ request: ndaRequest }, { status: 201 });
 }

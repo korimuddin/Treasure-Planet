@@ -4,19 +4,19 @@ import { useState } from "react";
 
 const flows = {
   Buyer: [
-    ["Browse", "Scan anonymous public listings by platform, price, completion, and technical signal.", "Use filters to narrow by platform before requesting deeper access."],
-    ["Register", "Create a verified buyer profile so sellers know who is asking.", "A stronger profile improves seller response rates."],
-    ["Sign NDA", "Sign the mutual NDA before any private project detail is released.", "Both sides are protected before strategy or IP moves."],
+    ["Browse", "Scan public listings by platform, price, completion, and technical signal.", "Use filters to narrow by platform before requesting deeper access."],
+    ["Register", "Create an account and confirm your email address.", "No identity check is needed to browse or request access."],
+    ["Request Access", "Sign the mutual NDA if the seller requires one, and tell the seller what you have in mind.", "Some sellers switch the NDA off; the listing says which applies."],
     ["Seller Approves", "The seller reviews your profile, budget, and deal intent.", "Clear intent helps the seller make a fast decision."],
-    ["Data Room", "Approved buyers see the private tier and can discuss specifics with the seller.", "Keep diligence questions inside deal chat."],
-    ["Close", "Move through LOI, escrow, transfer, and receipt confirmation.", "Funds are held until the buyer confirms receipt."],
+    ["Private Details", "Approved buyers see the private details and can discuss specifics with the seller.", "Keep your questions inside deal chat so there is a record."],
+    ["Close", "Agree terms, pay through Stripe, receive the project, and confirm receipt.", "Your payment is held by Stripe until you confirm receipt."],
   ],
   Seller: [
-    ["Verify", "Complete identity and payment setup before publishing.", "Verified sellers build trust faster."],
-    ["Build Listing", "Separate public, registered, and NDA-tier content.", "Public content should sell the opportunity without naming it."],
-    ["Access Settings", "Choose manual review or auto-approval rules for qualified buyers.", "You stay in control of the data room gate."],
-    ["Review Requests", "Inspect buyer profile, funds, and message before approving.", "Approve only when the buyer fit is real."],
-    ["Close", "Accept LOI, manage no-shop, receive escrow, and confirm transfer.", "Keep all deal steps inside the platform."],
+    ["Set Up Payouts", "Connect a Stripe account so buyers can pay you. Stripe verifies your identity.", "You can list first and set up payouts before your first sale."],
+    ["Build Listing", "Separate public, registered, and NDA-tier content.", "Choose whether the listing is anonymous and whether buyers must sign the NDA."],
+    ["Access Settings", "Choose manual review or auto-approval rules for qualified buyers.", "You stay in control of who sees the private details."],
+    ["Review Requests", "Read the buyer's name, stated budget, and message before approving.", "Approve only when the buyer fit is real."],
+    ["Close", "Agree terms, transfer the project once the buyer has paid, and get paid when they confirm receipt.", "Our 10% fee is deducted when the payment is released."],
   ],
   Cofounder: [
     ["Signal", "Use unfinished work as proof of execution rather than a pitch deck."],

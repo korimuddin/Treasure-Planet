@@ -33,16 +33,17 @@ export function LOIForm({
     });
 
     if (response.ok) {
-      setStatus("LOI sent to seller.");
+      setStatus("Terms sent to the seller.");
       onSubmitted?.();
     } else {
-      setStatus("Unable to send LOI.");
+      const payload = (await response.json().catch(() => ({}))) as { error?: unknown };
+      setStatus(typeof payload.error === "string" ? payload.error : "Unable to send terms.");
     }
   }
 
   return (
     <div className="space-y-4 border border-border bg-[rgba(7,15,26,0.72)] p-4">
-      <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">Letter of Intent</p>
+      <p className="font-mono text-xs uppercase tracking-[0.16em] text-gold">Propose terms</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <label>
           <span className="mb-2 block font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Deal type</span>
@@ -54,7 +55,7 @@ export function LOIForm({
         </label>
         <label>
           <span className="mb-2 block font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
-            Agreed price
+            Price (GBP)
           </span>
           <input className="auth-input" type="number" value={price} onChange={(event) => setPrice(event.target.value)} />
         </label>
@@ -78,7 +79,7 @@ export function LOIForm({
       </div>
       {status && <p className="font-mono text-xs uppercase tracking-[0.14em] text-teal2">{status}</p>}
       <button className="btn-liquid px-5 py-3 font-mono text-xs uppercase tracking-[0.16em]" type="button" onClick={submit}>
-        Send LOI
+        Send terms
       </button>
     </div>
   );

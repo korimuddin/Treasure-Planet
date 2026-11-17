@@ -1,6 +1,6 @@
 import type { DealStatus } from "@/types/database";
 
-const stages = ["Listed", "NDA", "Review", "Data Room", "Offer", "Escrow", "Closed"];
+const stages = ["Offer", "Terms sent", "Agreed", "Paying", "Payment held", "Transferred", "Closed"];
 
 const statusIndex: Record<DealStatus, number> = {
   negotiating: 0,

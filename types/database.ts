@@ -1,6 +1,8 @@
 export type ProfileRole = "buyer" | "seller" | "admin";
 export type KycStatus = "pending" | "submitted" | "verified" | "failed";
 export type ListingPlatform =
+  | "web"
+  | "saas"
   | "ios"
   | "android"
   | "macos"
@@ -60,6 +62,9 @@ export type Listing = {
   public_summary: string;
   status: ListingStatus;
   is_anonymous: boolean;
+  requires_nda: boolean;
+  seller_nda_version: string | null;
+  seller_nda_accepted_at: string | null;
   views_count: number;
   dev_background: string | null;
   screenshots_urls: string[];
@@ -105,6 +110,12 @@ export type NdaRequest = {
   auto_approved: boolean;
   seller_decided_at: string | null;
   decline_reason: string | null;
+  nda_required: boolean;
+  signed_name: string | null;
+  signed_at: string | null;
+  signed_ip: string | null;
+  nda_version: string | null;
+  nda_text_sha256: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -129,6 +140,11 @@ export type Deal = {
   agreed_price_gbp: number;
   stripe_payment_intent_id: string | null;
   stripe_transfer_id: string | null;
+  stripe_checkout_session_id: string | null;
+  stripe_charge_id: string | null;
+  refunded_at: string | null;
+  disputed_at: string | null;
+  dispute_reason: string | null;
   platform_fee_gbp: number | null;
   status: DealStatus;
   noshop_activated_at: string | null;

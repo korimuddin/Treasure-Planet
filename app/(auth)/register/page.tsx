@@ -55,6 +55,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [checkEmail, setCheckEmail] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -77,17 +78,18 @@ export default function RegisterPage() {
   const role = watch("role");
   const roleCopy =
     role === "buyer"
-      ? "Explore vetted opportunities, save listings, and build a verified acquisition profile."
-      : "Prepare an anonymous seller profile and get ready to list a project in a later phase.";
+      ? "Browse listings, request access to private details, and make offers."
+      : "List a project, choose what stays private, and approve who sees the rest.";
 
   async function onSubmit(values: RegisterForm) {
     setSubmitError(null);
     const supabase = createClient();
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
+        emailRedirectTo: `${window.location.origin}/login`,
         data: {
           role: values.role,
           full_name: values.fullName,
@@ -102,19 +104,28 @@ export default function RegisterPage() {
       return;
     }
 
-    await fetch("/api/auth/sanctions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        full_name: values.fullName,
-        country: values.country,
-      }),
-    }).catch(() => undefined);
+    // With email confirmation switched on in Supabase there is no session yet.
+    if (!data.session) {
+      setCheckEmail(values.email);
+      return;
+    }
 
     router.push(values.role === "buyer" ? "/marketplace" : "/dashboard/seller");
     router.refresh();
+  }
+
+  if (checkEmail) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-4 py-12">
+        <section className="w-full max-w-xl border border-border bg-[rgba(7,15,26,0.96)] p-8 text-center">
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">Almost there</p>
+          <h1 className="mt-3 font-display text-display-sm uppercase text-cream">Check your email</h1>
+          <p className="mt-3 text-cream2">
+            We sent a confirmation link to {checkEmail}. Open it to activate your account, then sign in.
+          </p>
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -123,7 +134,7 @@ export default function RegisterPage() {
         <div className="absolute left-0 top-0 h-0.5 w-full bg-[linear-gradient(90deg,transparent,var(--gold),transparent)]" />
         <div className="mb-8 text-center">
           <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">
-            Anonymous project marketplace
+            Software project marketplace
           </p>
           <h1 className="mt-2 font-display text-display-md uppercase text-cream">
             Treasure Planet

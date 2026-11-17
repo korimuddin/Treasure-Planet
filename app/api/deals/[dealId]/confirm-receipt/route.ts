@@ -1,83 +1,48 @@
 import { NextResponse } from "next/server";
+import { requireUser } from "@/lib/auth/session";
 import { logAction } from "@/lib/compliance/audit";
-import { releaseFunds } from "@/lib/stripe/connect";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { releaseDeal } from "@/lib/deals/settle";
+import { sendEmail } from "@/lib/email/notifications";
+
+export const runtime = "nodejs";
 
 type RouteContext = { params: { dealId: string } };
 
+/** Buyer confirms they received the project. This releases the held payment to the seller. */
 export async function POST(_request: Request, { params }: RouteContext) {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth.error) return auth.error;
+  const { user, admin } = auth;
 
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  }
-
-  const { data: deal } = await supabase
+  const { data: deal } = await admin
     .from("deals")
-    .select("*")
+    .select("id, seller_id")
     .eq("id", params.dealId)
     .eq("buyer_id", user.id)
-    .single();
+    .maybeSingle();
 
   if (!deal) {
     return NextResponse.json({ error: "Deal not found." }, { status: 404 });
   }
 
-  if (deal.status !== "ip_transferred" || !deal.stripe_payment_intent_id) {
-    return NextResponse.json({ error: "Receipt can only be confirmed after transfer." }, { status: 400 });
+  const result = await releaseDeal(admin, deal.id, ["ip_transferred"]);
+
+  if (result.error !== undefined) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  const paymentIntent = await releaseFunds(deal.stripe_payment_intent_id);
-  const capturedPayment = paymentIntent as typeof paymentIntent & { transfer?: string | null };
-  const completedAt = new Date().toISOString();
-  const { data: updated, error } = await supabase
-    .from("deals")
-    .update({
-      status: "completed",
-      completed_at: completedAt,
-      stripe_transfer_id: typeof capturedPayment.transfer === "string" ? capturedPayment.transfer : null,
-    })
-    .eq("id", deal.id)
-    .select("*")
-    .single();
+  const { data: seller } = await admin.from("profiles").select("email").eq("id", deal.seller_id).single();
 
-  if (error || !updated) {
-    return NextResponse.json({ error: error?.message ?? "Unable to complete deal." }, { status: 500 });
-  }
-
-  try {
-    const admin = createAdminClient();
-    const [{ data: buyer }, { data: seller }] = await Promise.all([
-      admin.from("profiles").select("deal_count").eq("id", deal.buyer_id).single(),
-      admin.from("profiles").select("deal_count").eq("id", deal.seller_id).single(),
-    ]);
-
-    await Promise.all([
-      admin.from("listings").update({ status: "sold", sold_at: completedAt }).eq("id", deal.listing_id),
-      admin
-        .from("profiles")
-        .update({ deal_count: (buyer?.deal_count ?? 0) + 1 })
-        .eq("id", deal.buyer_id),
-      admin
-        .from("profiles")
-        .update({ deal_count: (seller?.deal_count ?? 0) + 1 })
-        .eq("id", deal.seller_id),
-    ]);
-  } catch {
-    // Admin credentials may be absent in local preview.
-  }
+  await sendEmail({
+    to: seller?.email,
+    subject: "Payment released",
+    html: "<p>The buyer confirmed receipt and your payment has been released to your Stripe account.</p>",
+  }).catch(() => undefined);
 
   await logAction(user.id, "deal_completed", "deal", deal.id, {
-    payment_intent_id: deal.stripe_payment_intent_id,
+    transfer_id: result.deal.stripe_transfer_id,
+    platform_fee_pence: result.deal.platform_fee_gbp,
   });
 
-  return NextResponse.json({ deal: updated });
+  return NextResponse.json({ deal: result.deal });
 }

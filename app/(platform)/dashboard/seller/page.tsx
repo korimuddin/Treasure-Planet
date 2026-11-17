@@ -4,6 +4,7 @@ import {
   type SellerDealCard,
   type SellerRequestCard,
 } from "@/components/dashboard/SellerDashboardClient";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { checkSellerOnboarded } from "@/lib/stripe/connect";
 import type { SellerSettings } from "@/types/database";
@@ -47,10 +48,12 @@ export default async function SellerDashboardPage() {
   ]);
 
   const buyerIds = Array.from(new Set((requests ?? []).map((request) => request.buyer_id)));
+  // Buyer profiles need the service role (RLS only lets users read their own).
+  // Scoped to buyers who have sent THIS seller a request; email is not exposed.
   const { data: buyers } = buyerIds.length
-    ? await supabase
+    ? await createAdminClient()
         .from("profiles")
-        .select("id, full_name, email, company, country, avatar_initials, verified_budget_min, verified_budget_max")
+        .select("id, full_name, company, country, avatar_initials")
         .in("id", buyerIds)
     : { data: [] };
 
@@ -63,15 +66,16 @@ export default async function SellerDashboardPage() {
     return {
       id: request.id,
       status: request.status,
-      buyerName: buyer?.full_name ?? buyer?.email ?? "Verified buyer",
-      buyerInitials: buyer?.avatar_initials ?? initialsFromName(buyer?.full_name ?? buyer?.email ?? "VB"),
+      buyerName: request.signed_name ?? buyer?.full_name ?? "Registered buyer",
+      buyerInitials: buyer?.avatar_initials ?? initialsFromName(buyer?.full_name ?? "RB"),
       company: buyer?.company ?? "Independent buyer",
-      country: buyer?.country ?? "Location pending",
+      country: buyer?.country ?? "Location not given",
       dealType: request.deal_type,
-      budgetMin: request.budget_min_gbp ?? buyer?.verified_budget_min ?? 0,
-      budgetMax: request.budget_max_gbp ?? buyer?.verified_budget_max ?? 0,
+      budgetMin: request.budget_min_gbp ?? 0,
+      budgetMax: request.budget_max_gbp ?? 0,
       message: request.message ?? "No buyer message supplied.",
       listingTitle: listing?.category_label ?? "Listing",
+      ndaSigned: Boolean(request.signed_at),
     };
   });
 

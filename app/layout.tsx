@@ -26,11 +26,11 @@ const dmMono = DM_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://treasureplanet.io"),
   title: {
-    default: "Treasure Planet — Abandoned Software Marketplace",
+    default: "Treasure Planet — Unfinished Software Marketplace",
     template: "%s | Treasure Planet",
   },
   description:
-    "The world's first anonymous marketplace for abandoned software projects, where verified buyers discover unfinished apps, games, and products protected by mutual NDA.",
+    "A marketplace for unfinished and dormant software projects. Buy, co-found or merge web apps, mobile apps and games, with optional anonymity and a mutual NDA.",
   keywords: [
     "abandoned software",
     "sell app",
@@ -45,9 +45,9 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     type: "website",
-    title: "Treasure Planet — Abandoned Software Marketplace",
+    title: "Treasure Planet — Unfinished Software Marketplace",
     description:
-      "Discover anonymous abandoned software projects, request mutual NDA access, and close deals with verified buyers and sellers.",
+      "Discover unfinished software projects, request access to private details, and close deals with payment held until you confirm receipt.",
     url: "https://treasureplanet.io",
     siteName: "Treasure Planet",
     images: [
@@ -55,15 +55,15 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Treasure Planet abandoned software marketplace",
+        alt: "Treasure Planet unfinished software marketplace",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Treasure Planet — Abandoned Software Marketplace",
+    title: "Treasure Planet — Unfinished Software Marketplace",
     description:
-      "An anonymous marketplace for abandoned software projects, protected by mutual NDA.",
+      "A marketplace for unfinished and dormant software projects, with optional anonymity and a mutual NDA.",
     images: ["/og-image.png"],
   },
   robots: {

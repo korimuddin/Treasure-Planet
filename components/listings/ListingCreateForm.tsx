@@ -3,10 +3,12 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ListingCard } from "@/components/listings/ListingCard";
-import { createClient } from "@/lib/supabase/client";
+import { filterListingByTier } from "@/lib/listings/access";
 import type { Json, Listing, ListingPlatform } from "@/types/database";
 
 const platforms: { value: ListingPlatform; label: string }[] = [
+  { value: "web", label: "Web app" },
+  { value: "saas", label: "SaaS" },
   { value: "ios", label: "iOS" },
   { value: "android", label: "Android" },
   { value: "macos", label: "macOS" },
@@ -27,6 +29,8 @@ type FormState = {
   tech_stack_input: string;
   public_summary: string;
   is_anonymous: boolean;
+  requires_nda: boolean;
+  accept_nda: boolean;
   dev_background: string;
   screenshots_input: string;
   demo_video_url: string;
@@ -42,7 +46,7 @@ type FormState = {
 };
 
 const defaultState: FormState = {
-  platform: "ios",
+  platform: "web",
   category_label: "",
   completion_pct: 60,
   asking_price: "",
@@ -50,6 +54,8 @@ const defaultState: FormState = {
   tech_stack_input: "",
   public_summary: "",
   is_anonymous: true,
+  requires_nda: true,
+  accept_nda: false,
   dev_background: "",
   screenshots_input: "",
   demo_video_url: "",
@@ -64,7 +70,7 @@ const defaultState: FormState = {
   roadmap: "",
 };
 
-const steps = ["Public", "Registered", "NDA", "Preview"];
+const steps = ["Public", "Registered", "Private", "Preview"];
 
 export function ListingCreateForm({ sellerName }: { sellerName: string }) {
   const router = useRouter();
@@ -72,7 +78,6 @@ export function ListingCreateForm({ sellerName }: { sellerName: string }) {
   const [form, setForm] = useState<FormState>(defaultState);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploading, setUploading] = useState(false);
 
   const previewListing = useMemo<Listing>(() => buildPreviewListing(form, sellerName), [form, sellerName]);
 
@@ -98,37 +103,20 @@ export function ListingCreateForm({ sellerName }: { sellerName: string }) {
     setStep((current) => Math.min(current + 1, steps.length - 1));
   }
 
-  async function uploadSource(file: File) {
-    setUploading(true);
-    setError(null);
-
-    try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error("Sign in again before uploading.");
-      }
-
-      const path = `${user.id}/${Date.now()}-${file.name}`;
-      const { data, error: uploadError } = await supabase.storage.from("listing-source").upload(path, file);
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      update("source_code_url", data.path);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Upload failed.");
-    } finally {
-      setUploading(false);
-    }
-  }
-
   async function submit(publish: boolean) {
     if (!validatePublicStep()) {
+      return;
+    }
+
+    if (form.requires_nda && !form.accept_nda) {
+      setStep(0);
+      setError("Accept the mutual NDA terms, or switch off the NDA requirement.");
+      return;
+    }
+
+    if (publish && !form.project_name.trim()) {
+      setStep(2);
+      setError("Add a project name before publishing.");
       return;
     }
 
@@ -161,8 +149,8 @@ export function ListingCreateForm({ sellerName }: { sellerName: string }) {
           <p className="font-mono text-xs uppercase tracking-[0.18em] text-gold">New listing</p>
           <h1 className="mt-2 font-display text-display-lg uppercase text-cream">Prepare a project listing</h1>
           <p className="mt-3 max-w-2xl text-cream2">
-            Build each visibility tier carefully. Public details stay anonymous, registered buyers see more signal,
-            and approved NDA access unlocks the deepest material.
+            Build each visibility tier carefully. You choose what is public, registered buyers see more signal,
+            and buyers you approve unlock the private details.
           </p>
         </header>
 
@@ -185,9 +173,7 @@ export function ListingCreateForm({ sellerName }: { sellerName: string }) {
           <div className="border border-border bg-[rgba(7,15,26,0.9)] p-6 backdrop-blur-3xl">
             {step === 0 && <PublicStep form={form} update={update} />}
             {step === 1 && <RegisteredStep form={form} update={update} />}
-            {step === 2 && (
-              <NdaStep form={form} update={update} uploadSource={uploadSource} uploading={uploading} />
-            )}
+            {step === 2 && <NdaStep form={form} update={update} />}
             {step === 3 && <PreviewStep listing={previewListing} />}
 
             {error && <p className="mt-5 font-mono text-xs uppercase tracking-[0.14em] text-red">{error}</p>}
@@ -233,7 +219,8 @@ export function ListingCreateForm({ sellerName }: { sellerName: string }) {
 
           <aside className="space-y-4">
             <p className="font-mono text-xs uppercase tracking-[0.18em] text-muted">Live card preview</p>
-            <ListingCard listing={previewListing} accessTier="public" />
+            {/* Filtered exactly as the server filters it, so the preview shows what the public will see. */}
+            <ListingCard listing={filterListingByTier(previewListing, "public")} accessTier="public" />
           </aside>
         </section>
       </div>
@@ -305,6 +292,42 @@ function PublicStep({ form, update }: StepProps) {
           className="h-5 w-5 accent-gold"
         />
       </label>
+      <p className="-mt-3 text-sm text-muted">
+        {form.is_anonymous
+          ? "The project name and your name stay hidden until you approve a buyer."
+          : "The project name and your name are shown publicly on the listing."}
+      </p>
+      <label className="flex items-center justify-between border border-border bg-[rgba(4,9,15,0.8)] px-4 py-3">
+        <span className="font-mono text-xs uppercase tracking-[0.14em] text-muted">Require buyers to sign the mutual NDA</span>
+        <input
+          type="checkbox"
+          checked={form.requires_nda}
+          onChange={(event) => update("requires_nda", event.target.checked)}
+          className="h-5 w-5 accent-gold"
+        />
+      </label>
+      {form.requires_nda ? (
+        <label className="flex items-start gap-3 text-cream2">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 accent-gold"
+            checked={form.accept_nda}
+            onChange={(event) => update("accept_nda", event.target.checked)}
+          />
+          <span>
+            I have read the{" "}
+            <a className="text-gold hover:text-gold2" href="/legal" target="_blank" rel="noreferrer">
+              mutual NDA
+            </a>{" "}
+            and agree to be bound by it with each buyer I approve for this listing.
+          </span>
+        </label>
+      ) : (
+        <p className="-mt-3 text-sm text-muted">
+          Buyers can request access without signing anything. You still approve each request, but nothing you share
+          is covered by a confidentiality agreement.
+        </p>
+      )}
     </div>
   );
 }
@@ -344,32 +367,20 @@ function RegisteredStep({ form, update }: StepProps) {
   );
 }
 
-function NdaStep({
-  form,
-  update,
-  uploadSource,
-  uploading,
-}: StepProps & { uploadSource: (file: File) => void; uploading: boolean }) {
+function NdaStep({ form, update }: StepProps) {
   return (
     <div className="space-y-5">
-      <StepTitle title="NDA tier" text="Only approved buyers can see these fields." />
+      <StepTitle title="Private tier" text="Only buyers you approve can see these fields." />
       <TextField label="Project name" value={form.project_name} onChange={(value) => update("project_name", value)} />
-      <label className="block">
-        <span className="mb-2 block font-mono text-xs uppercase tracking-[0.14em] text-muted">Source code upload</span>
-        <input
-          type="file"
-          className="auth-input"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) {
-              uploadSource(file);
-            }
-          }}
-        />
-        <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
-          {uploading ? "Uploading..." : form.source_code_url || "No file uploaded yet"}
-        </p>
-      </label>
+      <TextField
+        label="Repository or demo link (optional)"
+        value={form.source_code_url}
+        onChange={(value) => update("source_code_url", value)}
+      />
+      <p className="-mt-3 text-sm text-muted">
+        Do not paste source code or secrets here. Every approved buyer can see this link, so use one that still needs
+        you to grant access (for example a private repository), and invite a buyer yourself once you trust them.
+      </p>
       <TextArea label="Architecture doc" value={form.architecture_doc} onChange={(value) => update("architecture_doc", value)} />
       <TextArea label="Revenue data" value={form.revenue_data} onChange={(value) => update("revenue_data", value)} />
       <TextArea label="Roadmap" value={form.roadmap} onChange={(value) => update("roadmap", value)} />
@@ -381,9 +392,9 @@ function PreviewStep({ listing }: { listing: Listing }) {
   return (
     <div className="space-y-5">
       <StepTitle title="Preview" text="Review how the listing changes across the three access tiers." />
-      <ListingCard listing={listing} accessTier="public" />
-      <ListingCard listing={listing} accessTier="registered" />
-      <ListingCard listing={listing} accessTier="nda" />
+      <ListingCard listing={filterListingByTier(listing, "public")} accessTier="public" />
+      <ListingCard listing={filterListingByTier(listing, "registered")} accessTier="registered" />
+      <ListingCard listing={filterListingByTier(listing, "nda")} accessTier="nda" />
     </div>
   );
 }
@@ -469,9 +480,12 @@ function buildPreviewListing(form: FormState, sellerName: string): Listing {
     asking_price_gbp: Math.round(Number(form.asking_price || 0) * 100),
     deal_types: form.deal_types,
     tech_stack: splitList(form.tech_stack_input),
-    public_summary: form.public_summary || "Your public anonymous summary will appear here.",
+    public_summary: form.public_summary || "Your public summary will appear here.",
     status: "draft",
     is_anonymous: form.is_anonymous,
+    requires_nda: form.requires_nda,
+    seller_nda_version: null,
+    seller_nda_accepted_at: null,
     views_count: 0,
     dev_background: form.dev_background || null,
     screenshots_urls: splitList(form.screenshots_input),
@@ -482,7 +496,7 @@ function buildPreviewListing(form: FormState, sellerName: string): Listing {
       months_active: Number(form.months_active || 0),
     },
     dev_timeline: form.dev_timeline || null,
-    project_name: form.project_name || "Project name",
+    project_name: form.project_name || null,
     source_code_url: form.source_code_url || null,
     architecture_doc: form.architecture_doc || null,
     revenue_data: parseLooseJson(form.revenue_data),
@@ -507,6 +521,8 @@ function toPayload(form: FormState, sellerName: string, publish: boolean) {
     tech_stack: listing.tech_stack,
     public_summary: listing.public_summary,
     is_anonymous: listing.is_anonymous,
+    requires_nda: listing.requires_nda,
+    accept_nda: form.accept_nda,
     dev_background: listing.dev_background,
     screenshots_urls: listing.screenshots_urls,
     demo_video_url: listing.demo_video_url,
